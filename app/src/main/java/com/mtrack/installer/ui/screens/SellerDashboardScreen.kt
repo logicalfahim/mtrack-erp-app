@@ -19,6 +19,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -45,20 +47,20 @@ fun SellerDashboardScreen(
     val salesData = state.dashboardData?.salesDepartment
     val user = state.userProfile
 
-    // Tab state: 0 = Sold Fleet, 1 = Dues Recovery
+    // Tab state: 0 = Sold Fleet, 1 = Receivables Due
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // High-performance instant search state
+    // Instant search state
     var searchQuery by remember { mutableStateOf("") }
 
-    // Segmented filter pill state (0 = All, 1 = Active/High, 2 = Pending/Standard)
+    // Filter pill state (0 = All, 1 = Active/High, 2 = Pending/Standard)
     var filterType by remember { mutableIntStateOf(0) }
 
     // Selected month string from state
     val activeMonth = salesData?.month ?: SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
 
     // -------------------------------------------------------------
-    // MEMOIZED ENTERPRISE DATA FILTERING PIPELINE
+    // MEMOIZED HIGH-PERFORMANCE DATA FILTERING
     // -------------------------------------------------------------
     val vehiclesList = salesData?.soldVehiclesList ?: emptyList()
     val duesList = salesData?.clientDuesList ?: emptyList()
@@ -104,82 +106,14 @@ fun SellerDashboardScreen(
             .fillMaxSize()
             .background(SurfaceBackground)
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp)
     ) {
-        // 1. Executive Identity Card
-        item(key = "header_profile", contentType = "header") {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground),
-                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Hello, ${user?.fullName ?: "Executive"}",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-                        )
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.padding(top = 2.dp)
-                        ) {
-                            Surface(
-                                color = BrandBlueLight,
-                                shape = RoundedCornerShape(6.dp),
-                                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BrandBlueBorder.copy(alpha = 0.5f)))
-                            ) {
-                                Text(
-                                    text = user?.designation ?: "Sales & Marketing",
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = BrandBluePrimary,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 10.5.sp
-                                    )
-                                )
-                            }
-                            Text(
-                                text = "• Dedicated Portfolio",
-                                style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
-                            )
-                        }
-                    }
-
-                    IconButton(
-                        onClick = { dashboardViewModel.loadDashboard(activeMonth) },
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(SurfaceBackground)
-                    ) {
-                        if (state.isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = BrandBluePrimary)
-                        } else {
-                            Icon(imageVector = Icons.Outlined.Refresh, contentDescription = "Sync", tint = BrandBluePrimary, modifier = Modifier.size(18.dp))
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. Month Navigator Bar
+        // 1. Month Slider Bar (Linear Capsule Style)
         item(key = "month_navigator", contentType = "nav") {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBackground),
                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
@@ -198,14 +132,19 @@ fun SellerDashboardScreen(
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(imageVector = Icons.Outlined.ChevronLeft, contentDescription = "Previous Month", tint = BrandBluePrimary, modifier = Modifier.size(20.dp))
+                        Icon(imageVector = Icons.Outlined.ChevronLeft, contentDescription = "Previous Month", tint = TextSecondary, modifier = Modifier.size(20.dp))
                     }
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(imageVector = Icons.Outlined.CalendarMonth, contentDescription = null, tint = BrandBluePrimary, modifier = Modifier.size(18.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(BrandBluePrimary)
+                        )
                         Text(
                             text = salesData?.monthName ?: formatMonthDisplay(activeMonth),
                             style = MaterialTheme.typography.titleMedium.copy(
@@ -214,6 +153,21 @@ fun SellerDashboardScreen(
                                 fontSize = 14.sp
                             )
                         )
+                        Surface(
+                            color = BrandBlueLight,
+                            shape = RoundedCornerShape(12.dp),
+                            border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BrandBlueBorder.copy(alpha = 0.5f)))
+                        ) {
+                            Text(
+                                text = "Live Period",
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = BrandBluePrimary,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
                     }
 
                     IconButton(
@@ -223,17 +177,165 @@ fun SellerDashboardScreen(
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = "Next Month", tint = BrandBluePrimary, modifier = Modifier.size(20.dp))
+                        Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = "Next Month", tint = TextSecondary, modifier = Modifier.size(20.dp))
                     }
                 }
             }
         }
 
-        // 3. Target Achievement & MoM Growth Card
+        // 2. Trending Bento Hero: Target Pacing & MoM Growth Gradient Card
         item(key = "target_growth_card", contentType = "metric_hero") {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(22.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF1E3A8A),
+                                    Color(0xFF2563EB),
+                                    Color(0xFF3B82F6)
+                                )
+                            )
+                        )
+                        .padding(18.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "SALES TARGET PACING",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = Color(0xFFDBEAFE),
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 0.8.sp,
+                                        fontSize = 10.5.sp
+                                    )
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.Bottom,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.padding(top = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "${salesData?.achievedQty ?: 0}",
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontSize = 26.sp
+                                        )
+                                    )
+                                    Text(
+                                        text = "/ ${salesData?.targetQty ?: 0} Units Sold",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = Color(0xFFBFDBFE),
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 12.sp
+                                        ),
+                                        modifier = Modifier.padding(bottom = 3.dp)
+                                    )
+                                }
+                            }
+
+                            // Glassmorphic Progress Badge
+                            Surface(
+                                color = Color.White.copy(alpha = 0.18f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    horizontalAlignment = Alignment.End
+                                ) {
+                                    Text(
+                                        text = "${salesData?.progressPercentage ?: 0f}%",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.5.sp
+                                        )
+                                    )
+                                    Text(
+                                        text = "Run Rate",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = Color(0xFFDBEAFE),
+                                            fontSize = 9.sp
+                                        )
+                                    )
+                                }
+                            }
+                        }
+
+                        // Progress Bar
+                        val progress = ((salesData?.progressPercentage ?: 0f) / 100f).coerceIn(0f, 1f)
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(7.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            color = Color.White,
+                            trackColor = Color.Black.copy(alpha = 0.2f)
+                        )
+
+                        // MoM Benchmark Pill
+                        val growth = salesData?.growthRate ?: 0f
+                        val lastAchieved = salesData?.lastMonthAchieved ?: 0
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = Color.White.copy(alpha = 0.16f),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    val icon = if (growth >= 0f) Icons.Outlined.TrendingUp else Icons.Outlined.TrendingDown
+                                    Icon(imageVector = icon, contentDescription = null, tint = Color(0xFF6EE7B7), modifier = Modifier.size(13.dp))
+                                    Text(
+                                        text = "${if (growth > 0) "+" else ""}${growth}% Growth",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = Color(0xFF6EE7B7),
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 11.sp
+                                        )
+                                    )
+                                }
+                            }
+
+                            Text(
+                                text = "Prior Month: $lastAchieved Units",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = Color(0xFFDBEAFE),
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Bento KPI Cards (Wide Receivables Card + 2 Columns)
+        item(key = "kpi_receivables_hero", contentType = "kpi_wide") {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { selectedTab = 1 },
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBackground),
                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
@@ -250,253 +352,118 @@ fun SellerDashboardScreen(
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(BrandBlueLight),
+                                    .size(28.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(AmberWarning.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.Outlined.GpsFixed, contentDescription = null, tint = BrandBluePrimary, modifier = Modifier.size(18.dp))
+                                Icon(imageVector = Icons.Outlined.ReceiptLong, contentDescription = null, tint = AmberWarning, modifier = Modifier.size(16.dp))
                             }
-                            Column {
-                                Text(
-                                    text = "Monthly Sales Target",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                                )
-                                Text(
-                                    text = "Fleet Pacing Engine",
-                                    style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
-                                )
-                            }
+                            Text(
+                                text = "Outstanding Receivables",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            )
                         }
 
                         Surface(
-                            color = if ((salesData?.progressPercentage ?: 0f) >= 100f) EmeraldBg else BrandBlueLight,
-                            shape = RoundedCornerShape(8.dp),
-                            border = CardDefaults.outlinedCardBorder().copy(
-                                brush = androidx.compose.ui.graphics.SolidColor(
-                                    if ((salesData?.progressPercentage ?: 0f) >= 100f) EmeraldSuccess.copy(alpha = 0.3f) else BrandBlueBorder
-                                )
-                            )
+                            color = AmberWarning.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(10.dp)
                         ) {
                             Text(
-                                text = "${salesData?.progressPercentage ?: 0f}% Achieved",
+                                text = "${salesData?.clientDuesCount ?: 0} Unpaid Accounts",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    color = if ((salesData?.progressPercentage ?: 0f) >= 100f) EmeraldSuccess else BrandBluePrimary,
-                                    fontWeight = FontWeight.SemiBold
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = AmberWarning,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 10.5.sp
                                 )
                             )
                         }
                     }
 
-                    // Progress Bar
-                    val progress = ((salesData?.progressPercentage ?: 0f) / 100f).coerceIn(0f, 1f)
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        color = BrandBluePrimary,
-                        trackColor = BorderSubtle
-                    )
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Bottom
                     ) {
-                        Text(
-                            text = "Achieved: ${salesData?.achievedQty ?: 0} Units",
-                            style = MaterialTheme.typography.bodySmall.copy(color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                        )
-                        Text(
-                            text = "Target: ${salesData?.targetQty ?: 0} Units",
-                            style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary)
-                        )
-                    }
-
-                    HorizontalDivider(color = BorderSubtle, thickness = 0.8.dp)
-
-                    // Month-over-Month Growth Indicator
-                    val growth = salesData?.growthRate ?: 0f
-                    val lastAchieved = salesData?.lastMonthAchieved ?: 0
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        val isPositive = growth >= 0f
-                        val badgeBg = if (isPositive) EmeraldBg else AmberWarning.copy(alpha = 0.1f)
-                        val badgeColor = if (isPositive) EmeraldSuccess else AmberWarning
-                        val icon = if (isPositive) Icons.Outlined.TrendingUp else Icons.Outlined.TrendingDown
+                        Column {
+                            Text(
+                                text = "৳${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = AmberWarning,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 22.sp
+                                )
+                            )
+                            Text(
+                                text = "Actionable balances to recover",
+                                style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 10.5.sp)
+                            )
+                        }
 
                         Surface(
-                            color = badgeBg,
-                            shape = RoundedCornerShape(6.dp)
+                            color = AmberWarning.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(imageVector = icon, contentDescription = null, tint = badgeColor, modifier = Modifier.size(14.dp))
                                 Text(
-                                    text = "${if (growth > 0) "+" else ""}${growth}% MoM Growth",
+                                    text = "Recover",
                                     style = MaterialTheme.typography.labelSmall.copy(
-                                        color = badgeColor,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 11.sp
+                                        color = AmberWarning,
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                 )
+                                Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = null, tint = AmberWarning, modifier = Modifier.size(12.dp))
                             }
                         }
-
-                        Text(
-                            text = "Prior Month: $lastAchieved Units",
-                            style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 11.sp)
-                        )
                     }
                 }
             }
         }
 
-        // 4. Executive KPI Grid (Row 1: Outstanding Dues & Company Sales)
-        item(key = "kpi_row_1", contentType = "kpi_row") {
+        // 4. Two Sub-KPI Columns: Personal Fleet & Company Benchmark
+        item(key = "kpi_columns_2", contentType = "kpi_pair") {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Outstanding Client Dues
-                KpiMetricCard(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { selectedTab = 1 },
-                    title = "Outstanding Dues",
-                    value = "৳${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}",
-                    subtitle = "${salesData?.clientDuesCount ?: 0} Unpaid Accounts",
-                    icon = Icons.Outlined.ReceiptLong,
-                    iconTint = AmberWarning,
-                    iconBg = AmberWarning.copy(alpha = 0.1f)
-                )
-
-                // Company Total Sales Benchmark
-                KpiMetricCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Company Benchmark",
-                    value = "${salesData?.companyTotalSales ?: 0}",
-                    subtitle = "Fleet Sold Nationwide",
-                    icon = Icons.Outlined.Domain,
-                    iconTint = BrandBluePrimary,
-                    iconBg = BrandBlueLight
-                )
-            }
-        }
-
-        // 5. Volume Metrics (Row 2: Personal Sold Fleet & Pending Recovery Invoices)
-        item(key = "kpi_row_2", contentType = "kpi_row") {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Sold Fleet Count
-                KpiMetricCard(
+                // Personal Deliveries
+                BentoSubCard(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { selectedTab = 0 },
-                    title = "Sold Fleet",
+                    title = "Personal Deliveries",
                     value = "${salesData?.soldVehiclesCount ?: 0}",
-                    subtitle = "Personal Deliveries",
+                    subtitle = "100% Verified",
                     icon = Icons.Outlined.DirectionsCar,
                     iconTint = BrandBluePrimary,
                     iconBg = BrandBlueLight
                 )
 
-                // Pending Due Invoices Count
-                KpiMetricCard(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { selectedTab = 1 },
-                    title = "Receivables Due",
-                    value = "${salesData?.clientDuesCount ?: 0}",
-                    subtitle = "Actionable Clients",
-                    icon = Icons.Outlined.PhoneCallback,
-                    iconTint = AmberWarning,
-                    iconBg = AmberWarning.copy(alpha = 0.1f)
+                // Nationwide Fleet
+                BentoSubCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Nationwide Total",
+                    value = "${salesData?.companyTotalSales ?: 0}",
+                    subtitle = "Company Benchmark",
+                    icon = Icons.Outlined.Domain,
+                    iconTint = TextSecondary,
+                    iconBg = SurfaceBackground
                 )
             }
         }
 
-        // 6. Fast Search & Filter Toolbar
-        item(key = "search_filter_bar", contentType = "search") {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground),
-                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
-            ) {
-                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Search Text Field
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        placeholder = {
-                            Text(
-                                text = if (selectedTab == 0) "Search plate number or client..." else "Search due invoice or phone...",
-                                style = MaterialTheme.typography.bodySmall.copy(color = TextMuted, fontSize = 12.sp)
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(imageVector = Icons.Outlined.Search, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp))
-                        },
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
-                                    Icon(imageVector = Icons.Outlined.Close, contentDescription = "Clear", tint = TextMuted, modifier = Modifier.size(16.dp))
-                                }
-                            }
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = BrandBluePrimary,
-                            unfocusedBorderColor = BorderSubtle,
-                            focusedContainerColor = SurfaceBackground,
-                            unfocusedContainerColor = SurfaceBackground
-                        ),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
-                    )
-
-                    // Quick Filter Pills
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        FilterPill(title = "All Records", isSelected = filterType == 0, onClick = { filterType = 0 })
-                        if (selectedTab == 0) {
-                            FilterPill(title = "Active Fleet", isSelected = filterType == 1, onClick = { filterType = 1 })
-                            FilterPill(title = "Pending Setup", isSelected = filterType == 2, onClick = { filterType = 2 })
-                        } else {
-                            FilterPill(title = "High Dues (>৳5k)", isSelected = filterType == 1, onClick = { filterType = 1 })
-                            FilterPill(title = "Standard Dues", isSelected = filterType == 2, onClick = { filterType = 2 })
-                        }
-                    }
-                }
-            }
-        }
-
-        // 7. Segmented Tab Bar (Sold Fleet vs Dues Recovery)
+        // 5. Linear-Style Modern Floating Pill Switcher
         item(key = "tab_bar", contentType = "tab_control") {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = CardBackground,
-                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFFE2E8F0).copy(alpha = 0.6f)
             ) {
                 Row(
                     modifier = Modifier
@@ -504,9 +471,10 @@ fun SellerDashboardScreen(
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    TabPillButton(
+                    ModernTabPill(
                         modifier = Modifier.weight(1f),
-                        title = "Sold Fleet (${filteredVehicles.size})",
+                        title = "Sold Fleet",
+                        count = filteredVehicles.size,
                         isSelected = selectedTab == 0,
                         onClick = {
                             selectedTab = 0
@@ -514,9 +482,10 @@ fun SellerDashboardScreen(
                         }
                     )
 
-                    TabPillButton(
+                    ModernTabPill(
                         modifier = Modifier.weight(1f),
-                        title = "Dues Recovery (${filteredDues.size})",
+                        title = "Receivables Due",
+                        count = filteredDues.size,
                         isSelected = selectedTab == 1,
                         onClick = {
                             selectedTab = 1
@@ -527,13 +496,67 @@ fun SellerDashboardScreen(
             }
         }
 
-        // 8. Virtualized Dynamic Lists
+        // 6. Search Capsule & Filters
+        item(key = "search_capsule", contentType = "search") {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    placeholder = {
+                        Text(
+                            text = if (selectedTab == 0) "Search plate number, client or phone..." else "Search due invoice or phone...",
+                            style = MaterialTheme.typography.bodySmall.copy(color = TextMuted, fontSize = 12.sp)
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Outlined.Search, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
+                                Icon(imageVector = Icons.Outlined.Close, contentDescription = "Clear", tint = TextMuted, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = BrandBluePrimary,
+                        unfocusedBorderColor = BorderSubtle,
+                        focusedContainerColor = CardBackground,
+                        unfocusedContainerColor = CardBackground
+                    ),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
+                )
+
+                // Capsule Filter Pills
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FilterCapsule(title = "All Records", isSelected = filterType == 0, onClick = { filterType = 0 })
+                    if (selectedTab == 0) {
+                        FilterCapsule(title = "Active Units", isSelected = filterType == 1, onClick = { filterType = 1 })
+                        FilterCapsule(title = "Pending Setup", isSelected = filterType == 2, onClick = { filterType = 2 })
+                    } else {
+                        FilterCapsule(title = "High Value (>৳5k)", isSelected = filterType == 1, onClick = { filterType = 1 })
+                        FilterCapsule(title = "Standard Dues", isSelected = filterType == 2, onClick = { filterType = 2 })
+                    }
+                }
+            }
+        }
+
+        // 7. Dynamic Virtualized List Feed
         if (selectedTab == 0) {
             // TAB 0: Sold Vehicles Fleet
             if (filteredVehicles.isEmpty()) {
                 item(key = "empty_fleet") {
                     EmptyStateCard(
-                        title = if (searchQuery.isNotEmpty()) "No vehicles match '$searchQuery'" else "No vehicle sales recorded for this month.",
+                        title = if (searchQuery.isNotEmpty()) "No vehicles match '$searchQuery'" else "No vehicle deliveries recorded this month.",
                         subtitle = "Installed GPS units assigned to your profile will appear here automatically."
                     )
                 }
@@ -543,15 +566,15 @@ fun SellerDashboardScreen(
                     key = { vehicle -> vehicle.id },
                     contentType = { "vehicle_item" }
                 ) { vehicle ->
-                    SoldVehicleRowItem(vehicle, context)
+                    ModernSoldVehicleRow(vehicle, context)
                 }
             }
         } else {
-            // TAB 1: Client Dues Recovery List
+            // TAB 1: Receivables Recovery List
             if (filteredDues.isEmpty()) {
                 item(key = "empty_dues") {
                     EmptyStateCard(
-                        title = if (searchQuery.isNotEmpty()) "No due invoices match '$searchQuery'" else "All client dues are fully settled!",
+                        title = if (searchQuery.isNotEmpty()) "No due invoices match '$searchQuery'" else "All client receivables are settled!",
                         subtitle = "There are no outstanding invoices for devices in your account."
                     )
                 }
@@ -561,7 +584,7 @@ fun SellerDashboardScreen(
                     key = { dueItem -> dueItem.invoiceId },
                     contentType = { "due_item" }
                 ) { dueItem ->
-                    ClientDueRowItem(dueItem, context)
+                    ModernClientDueRow(dueItem, context)
                 }
             }
         }
@@ -569,74 +592,18 @@ fun SellerDashboardScreen(
 }
 
 @Composable
-private fun FilterPill(
-    title: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick),
-        color = if (isSelected) BrandBluePrimary.copy(alpha = 0.1f) else SurfaceBackground,
-        shape = RoundedCornerShape(6.dp),
-        border = if (isSelected) CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BrandBluePrimary.copy(alpha = 0.4f))) else null
-    ) {
-        Text(
-            text = title,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            style = MaterialTheme.typography.labelSmall.copy(
-                color = if (isSelected) BrandBluePrimary else TextSecondary,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                fontSize = 10.5.sp
-            )
-        )
-    }
-}
-
-@Composable
-private fun TabPillButton(
-    modifier: Modifier = Modifier,
-    title: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick),
-        color = if (isSelected) BrandBluePrimary else SurfaceBackground,
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Box(
-            modifier = Modifier.padding(vertical = 10.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelMedium.copy(
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (isSelected) CardBackground else TextSecondary,
-                    fontSize = 12.sp
-                )
-            )
-        }
-    }
-}
-
-@Composable
-private fun KpiMetricCard(
+private fun BentoSubCard(
     modifier: Modifier = Modifier,
     title: String,
     value: String,
     subtitle: String,
     icon: ImageVector,
-    iconTint: androidx.compose.ui.graphics.Color,
-    iconBg: androidx.compose.ui.graphics.Color
+    iconTint: Color,
+    iconBg: Color
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
         border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
@@ -645,141 +612,217 @@ private fun KpiMetricCard(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(iconBg),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(16.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 11.sp)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(iconBg),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(14.dp))
+                }
             }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 11.sp)
-            )
+
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     color = TextPrimary,
-                    fontSize = 18.sp
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 20.sp
                 )
             )
+
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 9.5.sp)
+                style = MaterialTheme.typography.labelSmall.copy(
+                    color = EmeraldSuccess,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.sp
+                )
             )
         }
     }
 }
 
 @Composable
-private fun EmptyStateCard(
+private fun ModernTabPill(
+    modifier: Modifier = Modifier,
     title: String,
-    subtitle: String
+    count: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        color = if (isSelected) CardBackground else Color.Transparent,
+        shape = RoundedCornerShape(12.dp),
+        shadowElevation = if (isSelected) 1.dp else 0.dp
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier.padding(vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
         ) {
-            Icon(imageVector = Icons.Outlined.DirectionsCar, contentDescription = null, tint = TextMuted, modifier = Modifier.size(32.dp))
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary, fontWeight = FontWeight.Medium)
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) BrandBluePrimary else TextSecondary,
+                    fontSize = 12.sp
+                )
             )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall.copy(color = TextMuted)
-            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Surface(
+                color = if (isSelected) BrandBlueLight else SurfaceBackground,
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text(
+                    text = "$count",
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = if (isSelected) BrandBluePrimary else TextSecondary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    )
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun SoldVehicleRowItem(
+private fun FilterCapsule(
+    title: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick),
+        color = if (isSelected) BrandBluePrimary else CardBackground,
+        shape = RoundedCornerShape(20.dp),
+        border = if (isSelected) null else CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+            style = MaterialTheme.typography.labelSmall.copy(
+                color = if (isSelected) CardBackground else TextSecondary,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                fontSize = 11.sp
+            )
+        )
+    }
+}
+
+@Composable
+private fun ModernSoldVehicleRow(
     vehicle: SoldVehicleItem,
     context: android.content.Context
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
         border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    color = SurfaceBackground,
-                    shape = RoundedCornerShape(6.dp),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
-                ) {
-                    Text(
-                        text = vehicle.vehiclePlateNumber,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = FontFamily.Monospace,
-                            color = BrandBluePrimary,
-                            fontSize = 12.sp
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Initials Avatar
+                    val initials = (vehicle.customerName ?: "Client").split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(BrandBlueLight),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = initials.ifEmpty { "C" },
+                            style = MaterialTheme.typography.labelMedium.copy(color = BrandBluePrimary, fontWeight = FontWeight.Bold)
                         )
-                    )
+                    }
+
+                    Column {
+                        Text(
+                            text = vehicle.customerName ?: "Client",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                        )
+                        Text(
+                            text = vehicle.vehicleName ?: "Vehicle Unit",
+                            style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontSize = 11.5.sp)
+                        )
+                    }
                 }
 
                 val isAct = vehicle.status?.lowercase() == "active"
                 Surface(
                     color = if (isAct) EmeraldBg else AmberWarning.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(6.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        text = vehicle.status ?: "Pending",
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = if (isAct) EmeraldSuccess else AmberWarning,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 10.sp
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(modifier = Modifier.size(5.dp).clip(CircleShape).background(if (isAct) EmeraldSuccess else AmberWarning))
+                        Text(
+                            text = vehicle.status ?: "Pending",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = if (isAct) EmeraldSuccess else AmberWarning,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 10.sp
+                            )
                         )
-                    )
+                    }
                 }
             }
 
+            // Plate & Date Capsule
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(SurfaceBackground)
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column {
                     Text(
-                        text = vehicle.customerName ?: "Client",
+                        text = vehicle.vehiclePlateNumber,
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium,
-                            color = TextPrimary
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = TextPrimary,
+                            fontSize = 12.sp
                         )
                     )
                     Text(
-                        text = "${vehicle.vehicleName ?: "Vehicle"} • Installed: ${vehicle.installationDate ?: "N/A"}",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = TextSecondary,
-                            fontSize = 11.5.sp
-                        )
+                        text = "Installed: ${vehicle.installationDate ?: "N/A"}",
+                        style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.sp)
                     )
                 }
 
@@ -800,13 +843,13 @@ private fun SoldVehicleRowItem(
 }
 
 @Composable
-private fun ClientDueRowItem(
+private fun ModernClientDueRow(
     due: ClientDueItem,
     context: android.content.Context
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
         border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
@@ -820,87 +863,101 @@ private fun ClientDueRowItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    color = SurfaceBackground,
-                    shape = RoundedCornerShape(6.dp),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
-                ) {
-                    Text(
-                        text = due.vehiclePlateNumber ?: "Device Unit",
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            fontFamily = FontFamily.Monospace,
-                            color = BrandBluePrimary,
-                            fontSize = 12.sp
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val initials = (due.customerName ?: "Client").split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(AmberWarning.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = initials.ifEmpty { "C" },
+                            style = MaterialTheme.typography.labelMedium.copy(color = AmberWarning, fontWeight = FontWeight.Bold)
                         )
-                    )
-                }
+                    }
 
-                Text(
-                    text = "#${due.invoiceNo}",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = TextMuted,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 11.sp
-                    )
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = due.customerName ?: "Client",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
+                    Column {
+                        Text(
+                            text = due.customerName ?: "Client",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, color = TextPrimary)
                         )
-                    )
-                    Text(
-                        text = "${due.vehicleName ?: "Device"} • Date: ${due.invoiceDate?.take(10) ?: "N/A"}",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = TextSecondary,
-                            fontSize = 11.5.sp
+                        Text(
+                            text = due.customerPhone ?: "No phone",
+                            style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
                         )
-                    )
+                    }
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "৳${numberFormatShort(due.dueAmount)}",
+                        text = "৳${numberFormatShort(due.dueAmount)} Due",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = AmberWarning,
-                            fontSize = 15.sp
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 14.5.sp
                         )
                     )
                     Text(
-                        text = "Total: ৳${numberFormatShort(due.grandTotal)}",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = TextMuted,
-                            fontSize = 10.sp
-                        )
+                        text = "#${due.invoiceNo}",
+                        style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.sp)
                     )
                 }
             }
 
-            HorizontalDivider(color = BorderSubtle, thickness = 0.8.dp)
+            // Progress & Plate Capsule
+            Surface(
+                color = SurfaceBackground,
+                shape = RoundedCornerShape(10.dp),
+                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+            ) {
+                Column(
+                    modifier = Modifier.padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = due.vehiclePlateNumber ?: "Device Unit",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                color = TextPrimary
+                            )
+                        )
+                        Text(
+                            text = "Total: ৳${numberFormatShort(due.grandTotal)}",
+                            style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
+                        )
+                    }
 
+                    val paidRatio = if (due.grandTotal > 0) ((due.paidAmount / due.grandTotal).toFloat()).coerceIn(0f, 1f) else 0f
+                    LinearProgressIndicator(
+                        progress = { paidRatio },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(5.dp)
+                            .clip(RoundedCornerShape(3.dp)),
+                        color = EmeraldSuccess,
+                        trackColor = BorderSubtle
+                    )
+                }
+            }
+
+            // Direct Call Action Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (!due.customerPhone.isNullOrBlank()) "Phone: ${due.customerPhone}" else "No phone on record",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = TextSecondary,
-                        fontSize = 11.5.sp
-                    )
+                    text = "Billed: ${due.invoiceDate?.take(10) ?: "N/A"}",
+                    style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 10.5.sp)
                 )
 
                 if (!due.customerPhone.isNullOrBlank()) {
@@ -910,20 +967,20 @@ private fun ClientDueRowItem(
                             context.startActivity(intent)
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = BrandBluePrimary),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                         modifier = Modifier.height(34.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(imageVector = Icons.Outlined.Phone, contentDescription = null, tint = CardBackground, modifier = Modifier.size(14.dp))
+                            Icon(imageVector = Icons.Outlined.Phone, contentDescription = null, tint = CardBackground, modifier = Modifier.size(13.dp))
                             Text(
-                                text = "Call Client",
+                                text = "Direct Call",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     color = CardBackground,
-                                    fontWeight = FontWeight.Medium,
+                                    fontWeight = FontWeight.SemiBold,
                                     fontSize = 11.sp
                                 )
                             )
@@ -931,6 +988,38 @@ private fun ClientDueRowItem(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EmptyStateCard(
+    title: String,
+    subtitle: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(imageVector = Icons.Outlined.DirectionsCar, contentDescription = null, tint = TextMuted, modifier = Modifier.size(32.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary, fontWeight = FontWeight.SemiBold)
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall.copy(color = TextMuted)
+            )
         }
     }
 }
