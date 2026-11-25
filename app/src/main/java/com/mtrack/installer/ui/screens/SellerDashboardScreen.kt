@@ -45,20 +45,20 @@ fun SellerDashboardScreen(
     val salesData = state.dashboardData?.salesDepartment
     val user = state.userProfile
 
-    // Tab state: 0 = Sold Fleet, 1 = Client Dues List
+    // Tab state: 0 = Sold Fleet, 1 = Dues Recovery
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // Instant Search query state for high-volume data optimization
+    // High-performance instant search state
     var searchQuery by remember { mutableStateOf("") }
 
-    // Filter pill state (0 = All, 1 = Active/High, 2 = Pending)
+    // Segmented filter pill state (0 = All, 1 = Active/High, 2 = Pending/Standard)
     var filterType by remember { mutableIntStateOf(0) }
 
-    // Current month string from API or fallback
+    // Selected month string from state
     val activeMonth = salesData?.month ?: SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
 
     // -------------------------------------------------------------
-    // MEMOIZED HIGH-PERFORMANCE DATA FILTERING
+    // MEMOIZED ENTERPRISE DATA FILTERING PIPELINE
     // -------------------------------------------------------------
     val vehiclesList = salesData?.soldVehiclesList ?: emptyList()
     val duesList = salesData?.clientDuesList ?: emptyList()
@@ -91,8 +91,8 @@ fun SellerDashboardScreen(
                     d.invoiceNo.lowercase().contains(q)
 
             val matchFilter = when (filterType) {
-                1 -> d.dueAmount >= 5000.0 // High due
-                2 -> d.dueAmount < 5000.0  // Regular due
+                1 -> d.dueAmount >= 5000.0 // High priority due
+                2 -> d.dueAmount < 5000.0  // Standard due
                 else -> true
             }
             matchQuery && matchFilter
@@ -107,14 +107,14 @@ fun SellerDashboardScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp)
     ) {
-        // 1. Header Profile & Role Identity
+        // 1. Executive Identity Card
         item(key = "header_profile", contentType = "header") {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBackground),
                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -138,7 +138,8 @@ fun SellerDashboardScreen(
                         ) {
                             Surface(
                                 color = BrandBlueLight,
-                                shape = RoundedCornerShape(6.dp)
+                                shape = RoundedCornerShape(6.dp),
+                                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BrandBlueBorder.copy(alpha = 0.5f)))
                             ) {
                                 Text(
                                     text = user?.designation ?: "Sales & Marketing",
@@ -151,7 +152,7 @@ fun SellerDashboardScreen(
                                 )
                             }
                             Text(
-                                text = "• Personal Scope",
+                                text = "• Dedicated Portfolio",
                                 style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
                             )
                         }
@@ -167,21 +168,21 @@ fun SellerDashboardScreen(
                         if (state.isLoading) {
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = BrandBluePrimary)
                         } else {
-                            Icon(imageVector = Icons.Outlined.Refresh, contentDescription = "Refresh", tint = BrandBluePrimary, modifier = Modifier.size(18.dp))
+                            Icon(imageVector = Icons.Outlined.Refresh, contentDescription = "Sync", tint = BrandBluePrimary, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
             }
         }
 
-        // 2. Interactive Month Navigator Bar
+        // 2. Month Navigator Bar
         item(key = "month_navigator", contentType = "nav") {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBackground),
                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
             ) {
                 Row(
                     modifier = Modifier
@@ -197,7 +198,7 @@ fun SellerDashboardScreen(
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(imageVector = Icons.Outlined.ChevronLeft, contentDescription = "Prev", tint = BrandBluePrimary, modifier = Modifier.size(20.dp))
+                        Icon(imageVector = Icons.Outlined.ChevronLeft, contentDescription = "Previous Month", tint = BrandBluePrimary, modifier = Modifier.size(20.dp))
                     }
 
                     Row(
@@ -222,7 +223,7 @@ fun SellerDashboardScreen(
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = "Next", tint = BrandBluePrimary, modifier = Modifier.size(20.dp))
+                        Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = "Next Month", tint = BrandBluePrimary, modifier = Modifier.size(20.dp))
                     }
                 }
             }
@@ -235,7 +236,7 @@ fun SellerDashboardScreen(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBackground),
                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -262,7 +263,7 @@ fun SellerDashboardScreen(
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, color = TextPrimary)
                                 )
                                 Text(
-                                    text = "Vehicle Units Pacing Engine",
+                                    text = "Fleet Pacing Engine",
                                     style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
                                 )
                             }
@@ -270,12 +271,17 @@ fun SellerDashboardScreen(
 
                         Surface(
                             color = if ((salesData?.progressPercentage ?: 0f) >= 100f) EmeraldBg else BrandBlueLight,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            border = CardDefaults.outlinedCardBorder().copy(
+                                brush = androidx.compose.ui.graphics.SolidColor(
+                                    if ((salesData?.progressPercentage ?: 0f) >= 100f) EmeraldSuccess.copy(alpha = 0.3f) else BrandBlueBorder
+                                )
+                            )
                         ) {
                             Text(
-                                text = "${salesData?.progressPercentage ?: 0f}%",
+                                text = "${salesData?.progressPercentage ?: 0f}% Achieved",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                style = MaterialTheme.typography.labelLarge.copy(
+                                style = MaterialTheme.typography.labelMedium.copy(
                                     color = if ((salesData?.progressPercentage ?: 0f) >= 100f) EmeraldSuccess else BrandBluePrimary,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -312,7 +318,7 @@ fun SellerDashboardScreen(
 
                     HorizontalDivider(color = BorderSubtle, thickness = 0.8.dp)
 
-                    // MoM Growth Comparison Indicator
+                    // Month-over-Month Growth Indicator
                     val growth = salesData?.growthRate ?: 0f
                     val lastAchieved = salesData?.lastMonthAchieved ?: 0
                     Row(
@@ -321,7 +327,7 @@ fun SellerDashboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val isPositive = growth >= 0f
-                        val badgeBg = if (isPositive) EmeraldBg else AmberWarning.copy(alpha = 0.12f)
+                        val badgeBg = if (isPositive) EmeraldBg else AmberWarning.copy(alpha = 0.1f)
                         val badgeColor = if (isPositive) EmeraldSuccess else AmberWarning
                         val icon = if (isPositive) Icons.Outlined.TrendingUp else Icons.Outlined.TrendingDown
 
@@ -347,7 +353,7 @@ fun SellerDashboardScreen(
                         }
 
                         Text(
-                            text = "Last Month: $lastAchieved Units",
+                            text = "Prior Month: $lastAchieved Units",
                             style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 11.sp)
                         )
                     }
@@ -355,31 +361,31 @@ fun SellerDashboardScreen(
             }
         }
 
-        // 4. Core Sales Performance Pillars (Client Dues & Company Sales)
+        // 4. Executive KPI Grid (Row 1: Outstanding Dues & Company Sales)
         item(key = "kpi_row_1", contentType = "kpi_row") {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Client Due Amount (বাকি)
+                // Outstanding Client Dues
                 KpiMetricCard(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { selectedTab = 1 },
-                    title = "Client Dues (বাকি)",
+                    title = "Outstanding Dues",
                     value = "৳${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}",
-                    subtitle = "${salesData?.clientDuesCount ?: 0} Unpaid accounts",
+                    subtitle = "${salesData?.clientDuesCount ?: 0} Unpaid Accounts",
                     icon = Icons.Outlined.ReceiptLong,
                     iconTint = AmberWarning,
-                    iconBg = AmberWarning.copy(alpha = 0.12f)
+                    iconBg = AmberWarning.copy(alpha = 0.1f)
                 )
 
-                // Company Total Sales (কোম্পানির মোট সেল)
+                // Company Total Sales Benchmark
                 KpiMetricCard(
                     modifier = Modifier.weight(1f),
-                    title = "Company Total",
+                    title = "Company Benchmark",
                     value = "${salesData?.companyTotalSales ?: 0}",
-                    subtitle = "Fleet sold nationwide",
+                    subtitle = "Fleet Sold Nationwide",
                     icon = Icons.Outlined.Domain,
                     iconTint = BrandBluePrimary,
                     iconBg = BrandBlueLight
@@ -387,7 +393,7 @@ fun SellerDashboardScreen(
             }
         }
 
-        // 5. Volume Counter Row (Sold Fleet Count vs Pending Dues)
+        // 5. Volume Metrics (Row 2: Personal Sold Fleet & Pending Recovery Invoices)
         item(key = "kpi_row_2", contentType = "kpi_row") {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -398,25 +404,25 @@ fun SellerDashboardScreen(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { selectedTab = 0 },
-                    title = "Sold Fleet (গাড়ি)",
+                    title = "Sold Fleet",
                     value = "${salesData?.soldVehiclesCount ?: 0}",
-                    subtitle = "Vehicles sold this month",
+                    subtitle = "Personal Deliveries",
                     icon = Icons.Outlined.DirectionsCar,
                     iconTint = BrandBluePrimary,
                     iconBg = BrandBlueLight
                 )
 
-                // Pending Dues Count
+                // Pending Due Invoices Count
                 KpiMetricCard(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { selectedTab = 1 },
-                    title = "Pending Invoices",
+                    title = "Receivables Due",
                     value = "${salesData?.clientDuesCount ?: 0}",
-                    subtitle = "Clients awaiting recovery",
+                    subtitle = "Actionable Clients",
                     icon = Icons.Outlined.PhoneCallback,
                     iconTint = AmberWarning,
-                    iconBg = AmberWarning.copy(alpha = 0.12f)
+                    iconBg = AmberWarning.copy(alpha = 0.1f)
                 )
             }
         }
@@ -427,7 +433,8 @@ fun SellerDashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBackground),
-                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
             ) {
                 Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     // Search Text Field
@@ -439,7 +446,7 @@ fun SellerDashboardScreen(
                             .height(48.dp),
                         placeholder = {
                             Text(
-                                text = if (selectedTab == 0) "Search plate number or customer..." else "Search due invoice or phone...",
+                                text = if (selectedTab == 0) "Search plate number or client..." else "Search due invoice or phone...",
                                 style = MaterialTheme.typography.bodySmall.copy(color = TextMuted, fontSize = 12.sp)
                             )
                         },
@@ -465,25 +472,25 @@ fun SellerDashboardScreen(
                         keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
                     )
 
-                    // Filter Pills
+                    // Quick Filter Pills
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        FilterPill(title = "All", isSelected = filterType == 0, onClick = { filterType = 0 })
+                        FilterPill(title = "All Records", isSelected = filterType == 0, onClick = { filterType = 0 })
                         if (selectedTab == 0) {
-                            FilterPill(title = "Active Only", isSelected = filterType == 1, onClick = { filterType = 1 })
-                            FilterPill(title = "Pending", isSelected = filterType == 2, onClick = { filterType = 2 })
+                            FilterPill(title = "Active Fleet", isSelected = filterType == 1, onClick = { filterType = 1 })
+                            FilterPill(title = "Pending Setup", isSelected = filterType == 2, onClick = { filterType = 2 })
                         } else {
                             FilterPill(title = "High Dues (>৳5k)", isSelected = filterType == 1, onClick = { filterType = 1 })
-                            FilterPill(title = "Regular Dues", isSelected = filterType == 2, onClick = { filterType = 2 })
+                            FilterPill(title = "Standard Dues", isSelected = filterType == 2, onClick = { filterType = 2 })
                         }
                     }
                 }
             }
         }
 
-        // 7. Segmented Tab Control (Sold Fleet vs Due Recovery)
+        // 7. Segmented Tab Bar (Sold Fleet vs Dues Recovery)
         item(key = "tab_bar", contentType = "tab_control") {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -509,7 +516,7 @@ fun SellerDashboardScreen(
 
                     TabPillButton(
                         modifier = Modifier.weight(1f),
-                        title = "Due Recovery (${filteredDues.size})",
+                        title = "Dues Recovery (${filteredDues.size})",
                         isSelected = selectedTab == 1,
                         onClick = {
                             selectedTab = 1
@@ -520,14 +527,14 @@ fun SellerDashboardScreen(
             }
         }
 
-        // 8. Dynamic List Section (Virtualized Lazy Items)
+        // 8. Virtualized Dynamic Lists
         if (selectedTab == 0) {
             // TAB 0: Sold Vehicles Fleet
             if (filteredVehicles.isEmpty()) {
                 item(key = "empty_fleet") {
                     EmptyStateCard(
-                        title = if (searchQuery.isNotEmpty()) "No vehicles match '$searchQuery'" else "No vehicles sold in this month.",
-                        subtitle = "When you sell a GPS tracker, the fleet unit will appear here instantly."
+                        title = if (searchQuery.isNotEmpty()) "No vehicles match '$searchQuery'" else "No vehicle sales recorded for this month.",
+                        subtitle = "Installed GPS units assigned to your profile will appear here automatically."
                     )
                 }
             } else {
@@ -544,8 +551,8 @@ fun SellerDashboardScreen(
             if (filteredDues.isEmpty()) {
                 item(key = "empty_dues") {
                     EmptyStateCard(
-                        title = if (searchQuery.isNotEmpty()) "No due records match '$searchQuery'" else "All client dues are fully recovered!",
-                        subtitle = "No outstanding invoices remain unpaid for your sold devices."
+                        title = if (searchQuery.isNotEmpty()) "No due invoices match '$searchQuery'" else "All client dues are fully settled!",
+                        subtitle = "There are no outstanding invoices for devices in your account."
                     )
                 }
             } else {
@@ -571,7 +578,7 @@ private fun FilterPill(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
             .clickable(onClick = onClick),
-        color = if (isSelected) BrandBluePrimary.copy(alpha = 0.12f) else SurfaceBackground,
+        color = if (isSelected) BrandBluePrimary.copy(alpha = 0.1f) else SurfaceBackground,
         shape = RoundedCornerShape(6.dp),
         border = if (isSelected) CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BrandBluePrimary.copy(alpha = 0.4f))) else null
     ) {
@@ -632,7 +639,7 @@ private fun KpiMetricCard(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
         border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -676,7 +683,8 @@ private fun EmptyStateCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
-        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -708,7 +716,7 @@ private fun SoldVehicleRowItem(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
         border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -738,7 +746,7 @@ private fun SoldVehicleRowItem(
 
                 val isAct = vehicle.status?.lowercase() == "active"
                 Surface(
-                    color = if (isAct) EmeraldBg else AmberWarning.copy(alpha = 0.12f),
+                    color = if (isAct) EmeraldBg else AmberWarning.copy(alpha = 0.1f),
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
@@ -760,7 +768,7 @@ private fun SoldVehicleRowItem(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = vehicle.customerName ?: "Customer",
+                        text = vehicle.customerName ?: "Client",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.Medium,
                             color = TextPrimary
@@ -783,7 +791,7 @@ private fun SoldVehicleRowItem(
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(imageVector = Icons.Outlined.Phone, contentDescription = "Call Customer", tint = BrandBluePrimary, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Outlined.Phone, contentDescription = "Call Client", tint = BrandBluePrimary, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -801,7 +809,7 @@ private fun ClientDueRowItem(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
         border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -853,7 +861,7 @@ private fun ClientDueRowItem(
                         )
                     )
                     Text(
-                        text = "${due.vehicleName ?: "Device"} • Invoice: ${due.invoiceDate?.take(10) ?: "N/A"}",
+                        text = "${due.vehicleName ?: "Device"} • Date: ${due.invoiceDate?.take(10) ?: "N/A"}",
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = TextSecondary,
                             fontSize = 11.5.sp
@@ -888,7 +896,7 @@ private fun ClientDueRowItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (!due.customerPhone.isNullOrBlank()) "Phone: ${due.customerPhone}" else "No phone attached",
+                    text = if (!due.customerPhone.isNullOrBlank()) "Phone: ${due.customerPhone}" else "No phone on record",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = TextSecondary,
                         fontSize = 11.5.sp
@@ -912,7 +920,7 @@ private fun ClientDueRowItem(
                         ) {
                             Icon(imageVector = Icons.Outlined.Phone, contentDescription = null, tint = CardBackground, modifier = Modifier.size(14.dp))
                             Text(
-                                text = "Call Customer (কল করুন)",
+                                text = "Call Client",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     color = CardBackground,
                                     fontWeight = FontWeight.Medium,
