@@ -10,7 +10,13 @@ data class LoginRequest(
     val username: String,
 
     @SerializedName("password")
-    val password: String
+    val password: String,
+
+    @SerializedName("phone")
+    val phone: String? = null,
+
+    @SerializedName("email")
+    val email: String? = null
 )
 
 /**

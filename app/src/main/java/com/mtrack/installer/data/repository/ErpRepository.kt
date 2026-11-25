@@ -12,10 +12,20 @@ class ErpRepository(
     private val api: MTrackApiService = RetrofitClient.apiService
 ) {
 
-    suspend fun login(username: String, password: String): Result<LoginResponse> {
+    suspend fun login(userInput: String, password: String): Result<LoginResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = api.login(LoginRequest(username = username, password = password))
+                val trimmedInput = userInput.trim()
+                val isEmail = trimmedInput.contains("@")
+                val isPhone = trimmedInput.all { it.isDigit() || it == '+' }
+
+                val request = LoginRequest(
+                    username = trimmedInput,
+                    password = password,
+                    phone = if (isPhone) trimmedInput else null,
+                    email = if (isEmail) trimmedInput else null
+                )
+                val response = api.login(request)
                 if (response.isSuccessful && response.body() != null) {
                     val body = response.body()!!
                     if (body.status == "success" && !body.token.isNullOrBlank()) {
@@ -24,12 +34,27 @@ class ErpRepository(
                         Result.failure(Exception(body.message ?: "Authentication failed."))
                     }
                 } else {
-                    val errText = response.errorBody()?.string() ?: "Invalid credentials (Code: ${response.code()})"
-                    Result.failure(Exception(errText))
+                    val rawErr = response.errorBody()?.string()
+                    val cleanMsg = parseErrorMessage(rawErr, response.code())
+                    Result.failure(Exception(cleanMsg))
                 }
             } catch (e: Exception) {
                 Result.failure(e)
             }
+        }
+    }
+
+    private fun parseErrorMessage(rawErr: String?, statusCode: Int): String {
+        if (rawErr.isNullOrBlank()) return "Authentication failed (Code: $statusCode)"
+        return try {
+            val json = com.google.gson.JsonParser.parseString(rawErr).asJsonObject
+            when {
+                json.has("message") && !json.get("message").isJsonNull -> json.get("message").asString
+                json.has("error") && !json.get("error").isJsonNull -> json.get("error").asString
+                else -> rawErr
+            }
+        } catch (e: Exception) {
+            rawErr
         }
     }
 
