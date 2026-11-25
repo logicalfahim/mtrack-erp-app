@@ -2,15 +2,16 @@ package com.mtrack.installer.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -20,15 +21,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mtrack.installer.data.model.ClientDueItem
 import com.mtrack.installer.data.model.SoldVehicleItem
 import com.mtrack.installer.ui.theme.*
 import com.mtrack.installer.ui.viewmodel.DashboardViewModel
-import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -39,25 +41,74 @@ fun SellerDashboardScreen(
 ) {
     val state by dashboardViewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val salesData = state.dashboardData?.salesDepartment
     val user = state.userProfile
 
     // Tab state: 0 = Sold Fleet, 1 = Client Dues List
     var selectedTab by remember { mutableIntStateOf(0) }
 
+    // Instant Search query state for high-volume data optimization
+    var searchQuery by remember { mutableStateOf("") }
+
+    // Filter pill state (0 = All, 1 = Active/High, 2 = Pending)
+    var filterType by remember { mutableIntStateOf(0) }
+
     // Current month string from API or fallback
     val activeMonth = salesData?.month ?: SimpleDateFormat("yyyy-MM", Locale.US).format(Date())
+
+    // -------------------------------------------------------------
+    // MEMOIZED HIGH-PERFORMANCE DATA FILTERING
+    // -------------------------------------------------------------
+    val vehiclesList = salesData?.soldVehiclesList ?: emptyList()
+    val duesList = salesData?.clientDuesList ?: emptyList()
+
+    val filteredVehicles = remember(vehiclesList, searchQuery, filterType) {
+        val q = searchQuery.trim().lowercase()
+        vehiclesList.filter { v ->
+            val matchQuery = q.isEmpty() ||
+                    v.vehiclePlateNumber.lowercase().contains(q) ||
+                    (v.customerName?.lowercase()?.contains(q) == true) ||
+                    (v.customerPhone?.contains(q) == true) ||
+                    (v.vehicleName?.lowercase()?.contains(q) == true)
+
+            val matchFilter = when (filterType) {
+                1 -> v.status?.lowercase() == "active"
+                2 -> v.status?.lowercase() != "active"
+                else -> true
+            }
+            matchQuery && matchFilter
+        }
+    }
+
+    val filteredDues = remember(duesList, searchQuery, filterType) {
+        val q = searchQuery.trim().lowercase()
+        duesList.filter { d ->
+            val matchQuery = q.isEmpty() ||
+                    (d.vehiclePlateNumber?.lowercase()?.contains(q) == true) ||
+                    (d.customerName?.lowercase()?.contains(q) == true) ||
+                    (d.customerPhone?.contains(q) == true) ||
+                    d.invoiceNo.lowercase().contains(q)
+
+            val matchFilter = when (filterType) {
+                1 -> d.dueAmount >= 5000.0 // High due
+                2 -> d.dueAmount < 5000.0  // Regular due
+                else -> true
+            }
+            matchQuery && matchFilter
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(SurfaceBackground)
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp)
     ) {
-        // 1. User Header & Profile
-        item {
+        // 1. Header Profile & Role Identity
+        item(key = "header_profile", contentType = "header") {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -124,7 +175,7 @@ fun SellerDashboardScreen(
         }
 
         // 2. Interactive Month Navigator Bar
-        item {
+        item(key = "month_navigator", contentType = "nav") {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
@@ -135,11 +186,10 @@ fun SellerDashboardScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Previous Month Button
                     IconButton(
                         onClick = {
                             val prev = shiftMonth(activeMonth, -1)
@@ -147,36 +197,24 @@ fun SellerDashboardScreen(
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ChevronLeft,
-                            contentDescription = "Previous Month",
-                            tint = BrandBluePrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(imageVector = Icons.Outlined.ChevronLeft, contentDescription = "Prev", tint = BrandBluePrimary, modifier = Modifier.size(20.dp))
                     }
 
-                    // Month Display with Calendar Icon
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.CalendarMonth,
-                            contentDescription = null,
-                            tint = BrandBluePrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
+                        Icon(imageVector = Icons.Outlined.CalendarMonth, contentDescription = null, tint = BrandBluePrimary, modifier = Modifier.size(18.dp))
                         Text(
                             text = salesData?.monthName ?: formatMonthDisplay(activeMonth),
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = TextPrimary,
-                                fontSize = 14.5.sp
+                                fontSize = 14.sp
                             )
                         )
                     }
 
-                    // Next Month Button
                     IconButton(
                         onClick = {
                             val next = shiftMonth(activeMonth, 1)
@@ -184,19 +222,14 @@ fun SellerDashboardScreen(
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.ChevronRight,
-                            contentDescription = "Next Month",
-                            tint = BrandBluePrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = "Next", tint = BrandBluePrimary, modifier = Modifier.size(20.dp))
                     }
                 }
             }
         }
 
-        // 3. Target Progress & MoM Growth Card
-        item {
+        // 3. Target Achievement & MoM Growth Card
+        item(key = "target_growth_card", contentType = "metric_hero") {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -205,8 +238,8 @@ fun SellerDashboardScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -235,7 +268,6 @@ fun SellerDashboardScreen(
                             }
                         }
 
-                        // Achievement Percentage Badge
                         Surface(
                             color = if ((salesData?.progressPercentage ?: 0f) >= 100f) EmeraldBg else BrandBlueLight,
                             shape = RoundedCornerShape(8.dp)
@@ -251,7 +283,7 @@ fun SellerDashboardScreen(
                         }
                     }
 
-                    // Linear Progress Bar
+                    // Progress Bar
                     val progress = ((salesData?.progressPercentage ?: 0f) / 100f).coerceIn(0f, 1f)
                     LinearProgressIndicator(
                         progress = { progress },
@@ -278,9 +310,9 @@ fun SellerDashboardScreen(
                         )
                     }
 
-                    Divider(color = BorderSubtle, thickness = 0.8.dp)
+                    HorizontalDivider(color = BorderSubtle, thickness = 0.8.dp)
 
-                    // Month-over-Month (MoM) Growth Comparison Banner
+                    // MoM Growth Comparison Indicator
                     val growth = salesData?.growthRate ?: 0f
                     val lastAchieved = salesData?.lastMonthAchieved ?: 0
                     Row(
@@ -288,31 +320,29 @@ fun SellerDashboardScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            val isPositive = growth >= 0f
-                            val badgeBg = if (isPositive) EmeraldBg else AmberWarning.copy(alpha = 0.12f)
-                            val badgeColor = if (isPositive) EmeraldSuccess else AmberWarning
-                            val icon = if (isPositive) Icons.Outlined.TrendingUp else Icons.Outlined.TrendingDown
+                        val isPositive = growth >= 0f
+                        val badgeBg = if (isPositive) EmeraldBg else AmberWarning.copy(alpha = 0.12f)
+                        val badgeColor = if (isPositive) EmeraldSuccess else AmberWarning
+                        val icon = if (isPositive) Icons.Outlined.TrendingUp else Icons.Outlined.TrendingDown
 
-                            Surface(
-                                color = badgeBg,
-                                shape = RoundedCornerShape(6.dp)
+                        Surface(
+                            color = badgeBg,
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(imageVector = icon, contentDescription = null, tint = badgeColor, modifier = Modifier.size(14.dp))
-                                    Text(
-                                        text = "${if (growth > 0) "+" else ""}${growth}% MoM Growth",
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            color = badgeColor,
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 11.sp
-                                        )
+                                Icon(imageVector = icon, contentDescription = null, tint = badgeColor, modifier = Modifier.size(14.dp))
+                                Text(
+                                    text = "${if (growth > 0) "+" else ""}${growth}% MoM Growth",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = badgeColor,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.sp
                                     )
-                                }
+                                )
                             }
                         }
 
@@ -325,20 +355,20 @@ fun SellerDashboardScreen(
             }
         }
 
-        // 4. KPI Metrics Grid (Client Dues, Company Sales, Commission, New Install)
-        item {
+        // 4. Core Sales Performance Pillars (Client Dues & Company Sales)
+        item(key = "kpi_row_1", contentType = "kpi_row") {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Client Due Card (বাকি) - Clicking switches to Due Tab
+                // Client Due Amount (বাকি)
                 KpiMetricCard(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { selectedTab = 1 },
                     title = "Client Dues (বাকি)",
                     value = "৳${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}",
-                    subtitle = "${salesData?.clientDuesCount ?: 0} unpaid invoices",
+                    subtitle = "${salesData?.clientDuesCount ?: 0} Unpaid accounts",
                     icon = Icons.Outlined.ReceiptLong,
                     iconTint = AmberWarning,
                     iconBg = AmberWarning.copy(alpha = 0.12f)
@@ -357,17 +387,18 @@ fun SellerDashboardScreen(
             }
         }
 
-        item {
+        // 5. Volume Counter Row (Sold Fleet Count vs Pending Dues)
+        item(key = "kpi_row_2", contentType = "kpi_row") {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Sold Vehicles Count (Clicking switches to Fleet Tab)
+                // Sold Fleet Count
                 KpiMetricCard(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { selectedTab = 0 },
-                    title = "Sold Fleet (বিক্রি)",
+                    title = "Sold Fleet (গাড়ি)",
                     value = "${salesData?.soldVehiclesCount ?: 0}",
                     subtitle = "Vehicles sold this month",
                     icon = Icons.Outlined.DirectionsCar,
@@ -375,14 +406,14 @@ fun SellerDashboardScreen(
                     iconBg = BrandBlueLight
                 )
 
-                // Unpaid Due Invoices Count (Clicking switches to Due Tab)
+                // Pending Dues Count
                 KpiMetricCard(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { selectedTab = 1 },
-                    title = "Pending Dues",
+                    title = "Pending Invoices",
                     value = "${salesData?.clientDuesCount ?: 0}",
-                    subtitle = "Invoices awaiting recovery",
+                    subtitle = "Clients awaiting recovery",
                     icon = Icons.Outlined.PhoneCallback,
                     iconTint = AmberWarning,
                     iconBg = AmberWarning.copy(alpha = 0.12f)
@@ -390,12 +421,72 @@ fun SellerDashboardScreen(
             }
         }
 
-        // 5. Segmented Tab Bar (Sold Fleet vs Client Due List)
-        item {
+        // 6. Fast Search & Filter Toolbar
+        item(key = "search_filter_bar", contentType = "search") {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = CardBackground),
+                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Search Text Field
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        placeholder = {
+                            Text(
+                                text = if (selectedTab == 0) "Search plate number or customer..." else "Search due invoice or phone...",
+                                style = MaterialTheme.typography.bodySmall.copy(color = TextMuted, fontSize = 12.sp)
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(imageVector = Icons.Outlined.Search, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
+                                    Icon(imageVector = Icons.Outlined.Close, contentDescription = "Clear", tint = TextMuted, modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = BrandBluePrimary,
+                            unfocusedBorderColor = BorderSubtle,
+                            focusedContainerColor = SurfaceBackground,
+                            unfocusedContainerColor = SurfaceBackground
+                        ),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
+                    )
+
+                    // Filter Pills
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FilterPill(title = "All", isSelected = filterType == 0, onClick = { filterType = 0 })
+                        if (selectedTab == 0) {
+                            FilterPill(title = "Active Only", isSelected = filterType == 1, onClick = { filterType = 1 })
+                            FilterPill(title = "Pending", isSelected = filterType == 2, onClick = { filterType = 2 })
+                        } else {
+                            FilterPill(title = "High Dues (>৳5k)", isSelected = filterType == 1, onClick = { filterType = 1 })
+                            FilterPill(title = "Regular Dues", isSelected = filterType == 2, onClick = { filterType = 2 })
+                        }
+                    }
+                }
+            }
+        }
+
+        // 7. Segmented Tab Control (Sold Fleet vs Due Recovery)
+        item(key = "tab_bar", contentType = "tab_control") {
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 color = CardBackground,
                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
@@ -406,54 +497,63 @@ fun SellerDashboardScreen(
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Tab 1: Sold Fleet
                     TabPillButton(
                         modifier = Modifier.weight(1f),
-                        title = "Sold Fleet (${salesData?.soldVehiclesCount ?: 0})",
+                        title = "Sold Fleet (${filteredVehicles.size})",
                         isSelected = selectedTab == 0,
-                        onClick = { selectedTab = 0 }
+                        onClick = {
+                            selectedTab = 0
+                            filterType = 0
+                        }
                     )
 
-                    // Tab 2: Client Dues
                     TabPillButton(
                         modifier = Modifier.weight(1f),
-                        title = "Due List (${salesData?.clientDuesCount ?: 0})",
+                        title = "Due Recovery (${filteredDues.size})",
                         isSelected = selectedTab == 1,
-                        badgeColor = AmberWarning,
-                        onClick = { selectedTab = 1 }
+                        onClick = {
+                            selectedTab = 1
+                            filterType = 0
+                        }
                     )
                 }
             }
         }
 
-        // 6. Tab Content Display
+        // 8. Dynamic List Section (Virtualized Lazy Items)
         if (selectedTab == 0) {
             // TAB 0: Sold Vehicles Fleet
-            val vehiclesList = salesData?.soldVehiclesList ?: emptyList()
-            if (vehiclesList.isEmpty()) {
-                item {
+            if (filteredVehicles.isEmpty()) {
+                item(key = "empty_fleet") {
                     EmptyStateCard(
-                        title = "No vehicles sold in this month.",
-                        subtitle = "Click 'New Sale / Install' to onboard your first customer vehicle."
+                        title = if (searchQuery.isNotEmpty()) "No vehicles match '$searchQuery'" else "No vehicles sold in this month.",
+                        subtitle = "When you sell a GPS tracker, the fleet unit will appear here instantly."
                     )
                 }
             } else {
-                items(vehiclesList, key = { it.id }) { vehicle ->
+                items(
+                    items = filteredVehicles,
+                    key = { vehicle -> vehicle.id },
+                    contentType = { "vehicle_item" }
+                ) { vehicle ->
                     SoldVehicleRowItem(vehicle, context)
                 }
             }
         } else {
-            // TAB 1: Client Dues List with Direct Call Action
-            val duesList = salesData?.clientDuesList ?: emptyList()
-            if (duesList.isEmpty()) {
-                item {
+            // TAB 1: Client Dues Recovery List
+            if (filteredDues.isEmpty()) {
+                item(key = "empty_dues") {
                     EmptyStateCard(
-                        title = "No outstanding client dues!",
-                        subtitle = "All devices and service accounts sold by you are fully paid."
+                        title = if (searchQuery.isNotEmpty()) "No due records match '$searchQuery'" else "All client dues are fully recovered!",
+                        subtitle = "No outstanding invoices remain unpaid for your sold devices."
                     )
                 }
             } else {
-                items(duesList, key = { it.invoiceId }) { dueItem ->
+                items(
+                    items = filteredDues,
+                    key = { dueItem -> dueItem.invoiceId },
+                    contentType = { "due_item" }
+                ) { dueItem ->
                     ClientDueRowItem(dueItem, context)
                 }
             }
@@ -462,11 +562,36 @@ fun SellerDashboardScreen(
 }
 
 @Composable
+private fun FilterPill(
+    title: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .clickable(onClick = onClick),
+        color = if (isSelected) BrandBluePrimary.copy(alpha = 0.12f) else SurfaceBackground,
+        shape = RoundedCornerShape(6.dp),
+        border = if (isSelected) CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BrandBluePrimary.copy(alpha = 0.4f))) else null
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.labelSmall.copy(
+                color = if (isSelected) BrandBluePrimary else TextSecondary,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                fontSize = 10.5.sp
+            )
+        )
+    }
+}
+
+@Composable
 private fun TabPillButton(
     modifier: Modifier = Modifier,
     title: String,
     isSelected: Boolean,
-    badgeColor: androidx.compose.ui.graphics.Color? = null,
     onClick: () -> Unit
 ) {
     Surface(
@@ -666,9 +791,6 @@ private fun SoldVehicleRowItem(
     }
 }
 
-/**
- * Client Due Row Card with Direct Calling Button (কল করুন)
- */
 @Composable
 private fun ClientDueRowItem(
     due: ClientDueItem,
@@ -685,7 +807,6 @@ private fun ClientDueRowItem(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Top Row: Vehicle Plate + Invoice #
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -718,7 +839,6 @@ private fun ClientDueRowItem(
                 )
             }
 
-            // Middle Row: Customer Info & Due Amount
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -760,9 +880,8 @@ private fun ClientDueRowItem(
                 }
             }
 
-            Divider(color = BorderSubtle, thickness = 0.8.dp)
+            HorizontalDivider(color = BorderSubtle, thickness = 0.8.dp)
 
-            // Bottom Action Row: Direct Call Customer Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
