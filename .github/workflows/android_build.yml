@@ -11,6 +11,8 @@ jobs:
   build-apk:
     name: Build & Package APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: 📥 Checkout Repository
@@ -35,6 +37,7 @@ jobs:
           ./gradlew :app:assembleDebug --stacktrace > build_output.log 2>&1 || true
 
       - name: 📝 Post Build Diagnostics
+        if: always()
         run: |
           echo "### 📋 Build Log (Last 100 lines)" >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
