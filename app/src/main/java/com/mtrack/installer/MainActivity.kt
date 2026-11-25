@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MTrackInstallerTheme {
                 val authState by authViewModel.uiState.collectAsState()
+                val dashboardState by dashboardViewModel.uiState.collectAsState()
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
                 var currentRoute by remember { mutableStateOf("dashboard") }
@@ -233,20 +234,29 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             }
 
-                                            // Notification Bell with Badge (Triggers Half-Drawer Sheet)
+                                            // Notification Bell with Dynamic Badge (Triggers Half-Drawer Sheet)
+                                            val unreadCount = dashboardState.notifications.count { !it.isRead }
                                             IconButton(
                                                 onClick = { isNotificationSheetOpen = true }
                                             ) {
-                                                BadgedBox(
-                                                    badge = {
-                                                        Badge(
-                                                            containerColor = Color(0xFFEF4444),
-                                                            contentColor = Color.White
-                                                        ) {
-                                                            Text("2", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                                if (unreadCount > 0) {
+                                                    BadgedBox(
+                                                        badge = {
+                                                            Badge(
+                                                                containerColor = Color(0xFFEF4444),
+                                                                contentColor = Color.White
+                                                            ) {
+                                                                Text("$unreadCount", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                                            }
                                                         }
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Outlined.Notifications,
+                                                            contentDescription = "Notifications",
+                                                            tint = CardBackground
+                                                        )
                                                     }
-                                                ) {
+                                                } else {
                                                     Icon(
                                                         imageVector = Icons.Outlined.Notifications,
                                                         contentDescription = "Notifications",
@@ -386,7 +396,14 @@ class MainActivity : ComponentActivity() {
                                 // NOTIFICATION HALF-DRAWER EXPANDABLE MODAL SHEET
                                 NotificationHalfDrawerSheet(
                                     isOpen = isNotificationSheetOpen,
-                                    onDismiss = { isNotificationSheetOpen = false }
+                                    onDismiss = { isNotificationSheetOpen = false },
+                                    notifications = dashboardState.notifications,
+                                    onNotificationClick = { item ->
+                                        dashboardViewModel.markNotificationAsRead(item.id)
+                                    },
+                                    onMarkAllRead = {
+                                        dashboardViewModel.markAllNotificationsAsRead()
+                                    }
                                 )
 
                                 // GOOGLE PLAY STORE PROMINENT DISCLOSURE DIALOG

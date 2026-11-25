@@ -36,11 +36,16 @@ object RetrofitClient {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    private val gson = com.google.gson.GsonBuilder()
+        .setLenient()
+        .serializeNulls()
+        .create()
+
     val apiService: MTrackApiService by lazy {
         Retrofit.Builder()
             .baseUrl(getBaseUrl())
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
             .create(MTrackApiService::class.java)
     }

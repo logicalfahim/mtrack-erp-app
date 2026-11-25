@@ -321,7 +321,10 @@ data class DashboardResponse(
     val user: UserProfile? = null,
 
     @SerializedName("data", alternate = ["dashboard", "result", "payload"])
-    val data: ErpDashboardData? = null
+    val data: ErpDashboardData? = null,
+
+    @SerializedName("notifications", alternate = ["notification_list", "alerts"])
+    val notifications: List<StaffNotificationItem> = emptyList()
 )
 
 /**

@@ -167,7 +167,8 @@ fun AppDrawer(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    val initials = (currentUser?.fullName ?: (if (isAdmin) "Admin" else "Fahim Ahmed")).split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
+                    val displayName = currentUser?.fullName?.ifBlank { null } ?: currentUser?.username?.ifBlank { null } ?: (if (isAdmin) "System Administrator" else "Staff Member")
+                    val initials = displayName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -176,7 +177,7 @@ fun AppDrawer(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = initials.ifEmpty { if (isAdmin) "AD" else "FA" },
+                            text = initials.ifEmpty { if (isAdmin) "AD" else "ST" },
                             style = MaterialTheme.typography.titleMedium.copy(
                                 color = BrandBluePrimary,
                                 fontWeight = FontWeight.Bold
@@ -186,7 +187,7 @@ fun AppDrawer(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = currentUser?.fullName ?: (if (isAdmin) "System Administrator" else "Fahim Ahmed"),
+                            text = displayName,
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = TextPrimary

@@ -18,6 +18,7 @@ data class DashboardUiState(
     val errorMessage: String? = null,
     val userProfile: UserProfile? = null,
     val dashboardData: ErpDashboardData? = null,
+    val notifications: List<com.mtrack.installer.data.model.StaffNotificationItem> = emptyList(),
     val selectedMonth: String = ""
 )
 
@@ -75,6 +76,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                             isLoading = false,
                             userProfile = res.user ?: currentUser ?: it.userProfile,
                             dashboardData = res.data,
+                            notifications = res.notifications,
                             errorMessage = null
                         )
                     }
@@ -87,6 +89,24 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                         )
                     }
                 }
+            )
+        }
+    }
+
+    fun markNotificationAsRead(id: String) {
+        _uiState.update { state ->
+            state.copy(
+                notifications = state.notifications.map {
+                    if (it.id == id) it.copy(isRead = true) else it
+                }
+            )
+        }
+    }
+
+    fun markAllNotificationsAsRead() {
+        _uiState.update { state ->
+            state.copy(
+                notifications = state.notifications.map { it.copy(isRead = true) }
             )
         }
     }

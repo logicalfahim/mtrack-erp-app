@@ -32,8 +32,9 @@ import com.mtrack.installer.data.model.StaffNotificationItem
 fun NotificationHalfDrawerSheet(
     isOpen: Boolean,
     onDismiss: () -> Unit,
-    notifications: List<StaffNotificationItem> = sampleNotifications(),
-    onNotificationClick: (StaffNotificationItem) -> Unit = {}
+    notifications: List<StaffNotificationItem> = emptyList(),
+    onNotificationClick: (StaffNotificationItem) -> Unit = {},
+    onMarkAllRead: () -> Unit = {}
 ) {
     if (!isOpen) return
 
@@ -98,7 +99,7 @@ fun NotificationHalfDrawerSheet(
                 }
 
                 TextButton(
-                    onClick = { /* Mark all as read */ },
+                    onClick = onMarkAllRead,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
@@ -295,46 +296,3 @@ private fun NotificationCard(
         }
     }
 }
-
-fun sampleNotifications(): List<StaffNotificationItem> = listOf(
-    StaffNotificationItem(
-        id = "1",
-        title = "Vehicle Commission Credited",
-        message = "BDT 500 commission for Toyota Premio (GA 11-2233) has been approved and added to your monthly payout.",
-        category = "Billing",
-        timeAgo = "12m ago",
-        isRead = false
-    ),
-    StaffNotificationItem(
-        id = "2",
-        title = "New Installation Scheduled",
-        message = "Customer 'Hanif Paribahan' scheduled FMC130 fuel sensor setup tomorrow at 10:30 AM in Gabtoli.",
-        category = "Installation",
-        timeAgo = "45m ago",
-        isRead = false
-    ),
-    StaffNotificationItem(
-        id = "3",
-        title = "Monthly Target Milestone",
-        message = "Congratulations! You have reached 70% of your November vehicle tracking installation quota.",
-        category = "System",
-        timeAgo = "3h ago",
-        isRead = true
-    ),
-    StaffNotificationItem(
-        id = "4",
-        title = "Firmware VL03 v2.4 Rollout",
-        message = "All newly dispatched Voice Tracker VL03 units require mandatory GPS calibration update.",
-        category = "System",
-        timeAgo = "Yesterday",
-        isRead = true
-    ),
-    StaffNotificationItem(
-        id = "5",
-        title = "Client Overdue Payment Alert",
-        message = "Invoice #INV-2026-1088 for Hanif Paribahan (BDT 12,000) is pending collection.",
-        category = "Billing",
-        timeAgo = "2 days ago",
-        isRead = true
-    )
-)

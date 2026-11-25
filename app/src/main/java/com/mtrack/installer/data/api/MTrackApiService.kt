@@ -25,7 +25,25 @@ interface MTrackApiService {
     suspend fun getErpDashboard(
         @Header("Authorization") bearerToken: String,
         @Query("month") month: String? = null
-    ): Response<DashboardResponse>
+    ): Response<com.google.gson.JsonElement>
+
+    @GET("api/v1/dashboard")
+    suspend fun getDashboardGeneral(
+        @Header("Authorization") bearerToken: String,
+        @Query("month") month: String? = null
+    ): Response<com.google.gson.JsonElement>
+
+    @GET("api/v1/seller-dashboard")
+    suspend fun getSellerDashboard(
+        @Header("Authorization") bearerToken: String,
+        @Query("month") month: String? = null
+    ): Response<com.google.gson.JsonElement>
+
+    @GET("api/v1/admin-dashboard")
+    suspend fun getAdminDashboard(
+        @Header("Authorization") bearerToken: String,
+        @Query("month") month: String? = null
+    ): Response<com.google.gson.JsonElement>
 
     /**
      * Submit single/multi-vehicle installation onboarding request
@@ -64,26 +82,65 @@ interface MTrackApiService {
     ): Response<LocationUpdateResponse>
 
     /**
-     * Staff Directory fallback endpoint
+     * Staff Directory fallback endpoints with raw JsonElement parsing
      */
     @GET("api/v1/staffs")
     suspend fun getStaffs(
         @Header("Authorization") bearerToken: String
-    ): Response<ApiResponse<List<StaffMemberItem>>>
+    ): Response<com.google.gson.JsonElement>
 
     @GET("api/v1/staff-directory")
     suspend fun getStaffDirectory(
         @Header("Authorization") bearerToken: String
-    ): Response<ApiResponse<List<StaffMemberItem>>>
+    ): Response<com.google.gson.JsonElement>
+
+    @GET("api/v1/staff")
+    suspend fun getStaffSingle(
+        @Header("Authorization") bearerToken: String
+    ): Response<com.google.gson.JsonElement>
+
+    @GET("api/v1/users")
+    suspend fun getUsers(
+        @Header("Authorization") bearerToken: String
+    ): Response<com.google.gson.JsonElement>
+
+    @GET("api/v1/employees")
+    suspend fun getEmployees(
+        @Header("Authorization") bearerToken: String
+    ): Response<com.google.gson.JsonElement>
 
     /**
-     * Sales metrics fallback endpoint
+     * Sales & Installation Requests endpoints
      */
+    @GET("api/v1/install-requests")
+    suspend fun getInstallRequests(
+        @Header("Authorization") bearerToken: String? = null,
+        @Query("limit") limit: Int = 100
+    ): Response<com.google.gson.JsonElement>
+
     @GET("api/v1/sales")
     suspend fun getSales(
         @Header("Authorization") bearerToken: String,
         @Query("month") month: String? = null
-    ): Response<ApiResponse<SellerDashboardMetrics>>
+    ): Response<com.google.gson.JsonElement>
+
+    @GET("api/v1/vehicles")
+    suspend fun getVehicles(
+        @Header("Authorization") bearerToken: String
+    ): Response<com.google.gson.JsonElement>
+
+    /**
+     * Real-time notifications endpoints
+     */
+    @GET("api/v1/notifications")
+    suspend fun getNotifications(
+        @Header("Authorization") bearerToken: String
+    ): Response<com.google.gson.JsonElement>
+
+    @GET("api/v1/staff-notifications")
+    suspend fun getStaffNotifications(
+        @Header("Authorization") bearerToken: String
+    ): Response<com.google.gson.JsonElement>
 
     /**
      * Track status of requests by contact number

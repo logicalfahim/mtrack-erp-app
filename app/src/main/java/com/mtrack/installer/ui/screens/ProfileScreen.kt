@@ -61,7 +61,8 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Large Avatar Circle with Initials
-                val initials = (user?.fullName ?: "Fahim Ahmed").split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
+                val displayName = user?.fullName?.ifBlank { null } ?: user?.username?.ifBlank { null } ?: (if (isAdmin) "System Administrator" else "Staff Member")
+                val initials = displayName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
                 Box(
                     modifier = Modifier
                         .size(72.dp)
@@ -70,7 +71,7 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = initials.ifEmpty { "FA" },
+                        text = initials.ifEmpty { if (isAdmin) "AD" else "ST" },
                         style = MaterialTheme.typography.headlineMedium.copy(
                             color = BrandBluePrimary,
                             fontWeight = FontWeight.Bold,
@@ -83,7 +84,7 @@ fun ProfileScreen(
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = user?.fullName ?: (if (isAdmin) "System Administrator" else "Fahim Ahmed"),
+                        text = displayName,
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary,
@@ -91,7 +92,7 @@ fun ProfileScreen(
                         )
                     )
                     Text(
-                        text = "ID: #MTK-USR-${user?.userId ?: 12} • $roleDisplay",
+                        text = "ID: #MTK-USR-${user?.userId?.takeIf { it > 0 } ?: "ACTIVE"} • $roleDisplay",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = TextMuted,
                             fontFamily = FontFamily.Monospace,
@@ -208,7 +209,7 @@ fun ProfileScreen(
                 ProfileInfoRow(
                     icon = Icons.Outlined.Phone,
                     title = "Official Mobile",
-                    value = user?.phone ?: "+880 1711-223344"
+                    value = user?.phone?.ifBlank { null } ?: "Not Registered"
                 )
 
                 HorizontalDivider(color = BorderSubtle)
@@ -216,7 +217,7 @@ fun ProfileScreen(
                 ProfileInfoRow(
                     icon = Icons.Outlined.Email,
                     title = "Work Email",
-                    value = user?.email ?: "support@mtrack.com.bd"
+                    value = user?.email?.ifBlank { null } ?: "Not Registered"
                 )
 
                 HorizontalDivider(color = BorderSubtle)
