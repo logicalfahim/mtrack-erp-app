@@ -36,10 +36,15 @@ jobs:
         continue-on-error: true
 
       - name: 🔍 Verify and Report Compile Errors
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then
-            echo "=== GRADLE BUILD FAILURE DIAGNOSTICS ==="
-            grep -E "e: |error:|FAILED|Exception" build_log.txt -B 2 -A 5 || tail -n 100 build_log.txt
+            echo "Build failed! Dumping log to commit comment..."
+            tail -n 120 build_log.txt > err_summary.txt
+            gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" -F body=@err_summary.txt || true
+            cat err_summary.txt
             exit 1
           fi
 
