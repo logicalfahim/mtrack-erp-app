@@ -19,16 +19,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mtrack.installer.ui.components.AppDrawer
-import com.mtrack.installer.ui.screens.AboutUsScreen
-import com.mtrack.installer.ui.screens.InstallWizardScreen
-import com.mtrack.installer.ui.screens.SuccessScreen
+import com.mtrack.installer.ui.screens.*
 import com.mtrack.installer.ui.theme.*
+import com.mtrack.installer.ui.viewmodel.AuthViewModel
+import com.mtrack.installer.ui.viewmodel.DashboardViewModel
 import com.mtrack.installer.ui.viewmodel.InstallViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: InstallViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels()
+    private val dashboardViewModel: DashboardViewModel by viewModels()
+    private val installViewModel: InstallViewModel by viewModels()
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,108 +38,144 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MTrackInstallerTheme {
-                val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-                val scope = rememberCoroutineScope()
-                var currentRoute by remember { mutableStateOf("install_wizard") }
-                val uiState by viewModel.uiState.collectAsState()
+                val authState by authViewModel.uiState.collectAsState()
 
-                ModalNavigationDrawer(
-                    drawerState = drawerState,
-                    drawerContent = {
-                        AppDrawer(
-                            currentRoute = currentRoute,
-                            onNavigate = { route ->
-                                currentRoute = route
-                                if (route == "install_wizard" && uiState.currentStep == 5) {
-                                    viewModel.resetForm()
+                if (!authState.isLoggedIn) {
+                    // Mandatory Access Gatekeeper: Must sign in before entering ERP
+                    LoginScreen(authViewModel = authViewModel)
+                } else {
+                    // Authenticated Workspace Shell
+                    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+                    val scope = rememberCoroutineScope()
+                    var currentRoute by remember { mutableStateOf("dashboard") }
+                    val installState by installViewModel.uiState.collectAsState()
+
+                    ModalNavigationDrawer(
+                        drawerState = drawerState,
+                        drawerContent = {
+                            AppDrawer(
+                                currentRoute = currentRoute,
+                                currentUser = authState.currentUser,
+                                onNavigate = { route ->
+                                    currentRoute = route
+                                    if (route == "install_wizard" && installState.currentStep == 5) {
+                                        installViewModel.resetForm()
+                                    }
+                                },
+                                onLogout = {
+                                    authViewModel.logout()
+                                },
+                                onCloseDrawer = {
+                                    scope.launch { drawerState.close() }
                                 }
-                            },
-                            onCloseDrawer = {
-                                scope.launch { drawerState.close() }
-                            }
-                        )
-                    }
-                ) {
-                    Scaffold(
-                        topBar = {
-                            TopAppBar(
-                                title = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(28.dp)
-                                                .clip(CircleShape)
-                                                .background(CardBackground.copy(alpha = 0.2f)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Outlined.GpsFixed,
-                                                contentDescription = null,
-                                                tint = CardBackground,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                        Column {
-                                            Text(
-                                                text = if (currentRoute == "about_us") "About M Track" else "M Track Installer",
-                                                style = MaterialTheme.typography.titleMedium.copy(
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = CardBackground,
-                                                    fontSize = 15.sp
-                                                )
-                                            )
-                                            Text(
-                                                text = "Vehicle Onboarding Portal",
-                                                style = MaterialTheme.typography.labelSmall.copy(
-                                                    fontWeight = FontWeight.Normal,
-                                                    color = CardBackground.copy(alpha = 0.8f),
-                                                    fontSize = 10.sp
-                                                )
-                                            )
-                                        }
-                                    }
-                                },
-                                navigationIcon = {
-                                    IconButton(
-                                        onClick = {
-                                            scope.launch {
-                                                if (drawerState.isClosed) drawerState.open() else drawerState.close()
-                                            }
-                                        }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Outlined.Menu,
-                                            contentDescription = "Open Sidebar",
-                                            tint = CardBackground
-                                        )
-                                    }
-                                },
-                                colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = BrandBluePrimary,
-                                    titleContentColor = CardBackground,
-                                    navigationIconContentColor = CardBackground
-                                )
                             )
                         }
-                    ) { innerPadding ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(innerPadding)
-                        ) {
-                            if (currentRoute == "about_us") {
-                                AboutUsScreen()
-                            } else {
-                                if (uiState.currentStep == 5) {
-                                    SuccessScreen(
-                                        batchId = uiState.submittedBatchId ?: "MTK-SUCCESS",
-                                        viewModel = viewModel
+                    ) {
+                        Scaffold(
+                            topBar = {
+                                TopAppBar(
+                                    title = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                .background(CardBackground.copy(alpha = 0.2f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.GpsFixed,
+                                                    contentDescription = null,
+                                                    tint = CardBackground,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            Column {
+                                                val headerTitle = when (currentRoute) {
+                                                    "dashboard"      -> "M Track ERP"
+                                                    "install_wizard" -> "Vehicle Onboarding"
+                                                    "about_us"       -> "About M Track"
+                                                    else             -> "M Track Workspace"
+                                                }
+                                                val headerSubtitle = when (currentRoute) {
+                                                    "dashboard"      -> authState.currentUser?.department ?: "Department Dashboard"
+                                                    "install_wizard" -> "Multi-Vehicle Hardware Wizard"
+                                                    else             -> "Enterprise Telematics"
+                                                }
+
+                                                Text(
+                                                    text = headerTitle,
+                                                    style = MaterialTheme.typography.titleMedium.copy(
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = CardBackground,
+                                                        fontSize = 15.sp
+                                                    )
+                                                )
+                                                Text(
+                                                    text = headerSubtitle,
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.Normal,
+                                                        color = CardBackground.copy(alpha = 0.85f),
+                                                        fontSize = 10.sp
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    },
+                                    navigationIcon = {
+                                        IconButton(
+                                            onClick = {
+                                                scope.launch {
+                                                    if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.Menu,
+                                                contentDescription = "Open Navigation Menu",
+                                                tint = CardBackground
+                                            )
+                                        }
+                                    },
+                                    colors = TopAppBarDefaults.topAppBarColors(
+                                        containerColor = BrandBluePrimary,
+                                        titleContentColor = CardBackground,
+                                        navigationIconContentColor = CardBackground
                                     )
-                                } else {
-                                    InstallWizardScreen(viewModel = viewModel)
+                                )
+                            }
+                        ) { innerPadding ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(innerPadding)
+                            ) {
+                                when (currentRoute) {
+                                    "dashboard" -> {
+                                        SellerDashboardScreen(
+                                            dashboardViewModel = dashboardViewModel,
+                                            onNavigateToInstall = {
+                                                currentRoute = "install_wizard"
+                                                installViewModel.resetForm()
+                                            }
+                                        )
+                                    }
+                                    "install_wizard" -> {
+                                        if (installState.currentStep == 5) {
+                                            SuccessScreen(
+                                                batchId = installState.submittedBatchId ?: "MTK-SUCCESS",
+                                                viewModel = installViewModel
+                                            )
+                                        } else {
+                                            InstallWizardScreen(viewModel = installViewModel)
+                                        }
+                                    }
+                                    "about_us" -> {
+                                        AboutUsScreen()
+                                    }
                                 }
                             }
                         }

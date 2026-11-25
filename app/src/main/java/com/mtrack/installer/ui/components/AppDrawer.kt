@@ -19,12 +19,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mtrack.installer.data.model.UserProfile
 import com.mtrack.installer.ui.theme.*
 
 @Composable
 fun AppDrawer(
     currentRoute: String,
+    currentUser: UserProfile?,
     onNavigate: (String) -> Unit,
+    onLogout: () -> Unit,
     onCloseDrawer: () -> Unit
 ) {
     val context = LocalContext.current
@@ -34,66 +37,71 @@ fun AppDrawer(
         drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
         drawerContainerColor = CardBackground
     ) {
-        // Drawer Header with Brand Logo & Info
+        // Drawer Header with User Profile / Brand Header
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(BrandBluePrimary)
-                .padding(horizontal = 20.dp, vertical = 24.dp)
+                .padding(horizontal = 20.dp, vertical = 22.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(CardBackground.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.GpsFixed,
-                    contentDescription = "Logo",
-                    tint = CardBackground,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .clip(CircleShape)
+                        .background(CardBackground.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = (currentUser?.fullName?.take(1) ?: "M").uppercase(),
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            color = CardBackground,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = currentUser?.fullName ?: "Staff Member",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = CardBackground
+                        )
+                    )
+                    Text(
+                        text = currentUser?.department ?: "M TRACK ERP",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = CardBackground.copy(alpha = 0.85f),
+                            fontSize = 11.sp
+                        )
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            Text(
-                text = "M TRACK",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    color = CardBackground,
-                    letterSpacing = 0.5.sp
-                )
-            )
-
-            Text(
-                text = "Vehicle Intelligence & GPS Fleet",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = CardBackground.copy(alpha = 0.85f),
-                    fontWeight = FontWeight.Normal
-                )
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Version Pill
+            // Role Badge
             Surface(
                 color = CardBackground.copy(alpha = 0.15f),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text(
-                    text = "v1.0.0 Enterprise",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    text = "${currentUser?.designation ?: "Staff"} • ${currentUser?.role?.uppercase() ?: "USER"}",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelSmall.copy(
                         color = CardBackground,
-                        fontWeight = FontWeight.Normal
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 10.5.sp
                     )
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // Navigation Items
         Column(
@@ -103,6 +111,16 @@ fun AppDrawer(
                 .padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            DrawerMenuItem(
+                title = "Department Dashboard",
+                icon = Icons.Outlined.Dashboard,
+                isSelected = currentRoute == "dashboard",
+                onClick = {
+                    onNavigate("dashboard")
+                    onCloseDrawer()
+                }
+            )
+
             DrawerMenuItem(
                 title = "New Installation Request",
                 icon = Icons.Outlined.AddCircleOutline,
@@ -129,13 +147,13 @@ fun AppDrawer(
             )
 
             Text(
-                text = "DIRECT SUPPORT",
+                text = "SUPPORT & HELPLINE",
                 style = MaterialTheme.typography.labelSmall.copy(
                     fontWeight = FontWeight.Medium,
                     color = TextMuted,
                     letterSpacing = 0.5.sp
                 ),
-                modifier = Modifier.padding(start = 12.dp, top = 4.dp, bottom = 4.dp)
+                modifier = Modifier.padding(start = 12.dp, top = 2.dp, bottom = 2.dp)
             )
 
             DrawerMenuItem(
@@ -158,15 +176,38 @@ fun AppDrawer(
                 }
             )
 
-            DrawerMenuItem(
-                title = "Visit mtrack.com.bd",
-                icon = Icons.Outlined.Language,
-                isSelected = false,
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://mtrack.com.bd"))
-                    context.startActivity(intent)
-                }
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = BorderSubtle
             )
+
+            // Logout Button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable {
+                        onLogout()
+                        onCloseDrawer()
+                    }
+                    .padding(horizontal = 12.dp, vertical = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Logout,
+                    contentDescription = "Logout",
+                    tint = RoseError,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = "Sign Out",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = RoseError
+                    )
+                )
+            }
         }
 
         // Drawer Footer
@@ -176,7 +217,7 @@ fun AppDrawer(
                 .padding(16.dp)
         ) {
             Text(
-                text = "© 2026 M TRACK ERP. All rights reserved.",
+                text = "© 2026 M TRACK ERP Enterprise Mobile v1.1.0",
                 style = MaterialTheme.typography.labelSmall.copy(
                     color = TextMuted,
                     fontWeight = FontWeight.Normal

@@ -1,8 +1,6 @@
 package com.mtrack.installer.data.api
 
-import com.mtrack.installer.data.model.ApiResponse
-import com.mtrack.installer.data.model.InstallSubmissionResult
-import com.mtrack.installer.data.model.InstallationRequestPayload
+import com.mtrack.installer.data.model.*
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -11,6 +9,23 @@ import retrofit2.http.POST
 import retrofit2.http.Query
 
 interface MTrackApiService {
+
+    /**
+     * User Authentication & Bearer Token Generation
+     */
+    @POST("api/v1/auth-login")
+    suspend fun login(
+        @Body request: LoginRequest
+    ): Response<LoginResponse>
+
+    /**
+     * Universal Role-Based ERP Departmental Dashboard
+     */
+    @GET("api/v1/erp-dashboard")
+    suspend fun getErpDashboard(
+        @Header("Authorization") bearerToken: String,
+        @Query("month") month: String? = null
+    ): Response<DashboardResponse>
 
     /**
      * Submit single/multi-vehicle installation onboarding request
