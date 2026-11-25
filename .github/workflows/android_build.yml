@@ -33,7 +33,15 @@ jobs:
         run: chmod +x gradlew
 
       - name: 🛠️ Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build_log.txt
+
+      - name: 🚨 Report Diagnostics on Failure
+        if: failure()
+        run: |
+          tail -n 120 build_log.txt > err_summary.txt || true
+          gh issue create --title "Build Diagnostic: $(git rev-parse --short HEAD)" --body-file err_summary.txt --repo logicalfahim/mtrack-erp-app || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 📦 Upload Ready-to-Install APK
         uses: actions/upload-artifact@v4

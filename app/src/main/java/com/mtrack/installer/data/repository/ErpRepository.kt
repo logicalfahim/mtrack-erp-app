@@ -104,22 +104,37 @@ class ErpRepository(
      * Tries primary and alternative dashboard endpoints
      */
     private suspend fun fetchDashboardPayload(authHeader: String, month: String?): DashboardResponse {
-        val attempts = listOf<suspend () -> retrofit2.Response<JsonElement>>(
-            { api.getErpDashboard(authHeader, month) },
-            { api.getDashboardGeneral(authHeader, month) },
-            { api.getSellerDashboard(authHeader, month) },
-            { api.getAdminDashboard(authHeader, month) }
-        )
+        try {
+            val r1 = api.getErpDashboard(authHeader, month)
+            if (r1.isSuccessful && r1.body() != null) {
+                val parsed = parseDashboardJson(r1.body()!!)
+                if (parsed != null) return parsed
+            }
+        } catch (ignored: Exception) {}
 
-        for (attempt in attempts) {
-            try {
-                val resp = attempt()
-                if (resp.isSuccessful && resp.body() != null) {
-                    val parsed = parseDashboardJson(resp.body()!!)
-                    if (parsed != null) return parsed
-                }
-            } catch (ignored: Exception) {}
-        }
+        try {
+            val r2 = api.getDashboardGeneral(authHeader, month)
+            if (r2.isSuccessful && r2.body() != null) {
+                val parsed = parseDashboardJson(r2.body()!!)
+                if (parsed != null) return parsed
+            }
+        } catch (ignored: Exception) {}
+
+        try {
+            val r3 = api.getSellerDashboard(authHeader, month)
+            if (r3.isSuccessful && r3.body() != null) {
+                val parsed = parseDashboardJson(r3.body()!!)
+                if (parsed != null) return parsed
+            }
+        } catch (ignored: Exception) {}
+
+        try {
+            val r4 = api.getAdminDashboard(authHeader, month)
+            if (r4.isSuccessful && r4.body() != null) {
+                val parsed = parseDashboardJson(r4.body()!!)
+                if (parsed != null) return parsed
+            }
+        } catch (ignored: Exception) {}
 
         return DashboardResponse(status = "success", code = 200, data = ErpDashboardData())
     }
@@ -147,23 +162,46 @@ class ErpRepository(
      * Handles both direct JSON array and wrapped JSON objects
      */
     private suspend fun fetchStaffDirectory(authHeader: String): List<StaffMemberItem> {
-        val endpoints = listOf<suspend () -> retrofit2.Response<JsonElement>>(
-            { api.getStaffs(authHeader) },
-            { api.getStaffDirectory(authHeader) },
-            { api.getUsers(authHeader) },
-            { api.getEmployees(authHeader) },
-            { api.getStaffSingle(authHeader) }
-        )
+        try {
+            val r1 = api.getStaffs(authHeader)
+            if (r1.isSuccessful && r1.body() != null) {
+                val list = parseStaffList(r1.body()!!)
+                if (list.isNotEmpty()) return list
+            }
+        } catch (ignored: Exception) {}
 
-        for (endpoint in endpoints) {
-            try {
-                val resp = endpoint()
-                if (resp.isSuccessful && resp.body() != null) {
-                    val list = parseStaffList(resp.body()!!)
-                    if (list.isNotEmpty()) return list
-                }
-            } catch (ignored: Exception) {}
-        }
+        try {
+            val r2 = api.getStaffDirectory(authHeader)
+            if (r2.isSuccessful && r2.body() != null) {
+                val list = parseStaffList(r2.body()!!)
+                if (list.isNotEmpty()) return list
+            }
+        } catch (ignored: Exception) {}
+
+        try {
+            val r3 = api.getUsers(authHeader)
+            if (r3.isSuccessful && r3.body() != null) {
+                val list = parseStaffList(r3.body()!!)
+                if (list.isNotEmpty()) return list
+            }
+        } catch (ignored: Exception) {}
+
+        try {
+            val r4 = api.getEmployees(authHeader)
+            if (r4.isSuccessful && r4.body() != null) {
+                val list = parseStaffList(r4.body()!!)
+                if (list.isNotEmpty()) return list
+            }
+        } catch (ignored: Exception) {}
+
+        try {
+            val r5 = api.getStaffSingle(authHeader)
+            if (r5.isSuccessful && r5.body() != null) {
+                val list = parseStaffList(r5.body()!!)
+                if (list.isNotEmpty()) return list
+            }
+        } catch (ignored: Exception) {}
+
         return emptyList()
     }
 
@@ -421,19 +459,23 @@ class ErpRepository(
         val remoteList = mutableListOf<StaffNotificationItem>()
 
         // 1. Try fetching remote notifications from ERP
-        val notificationEndpoints = listOf<suspend () -> retrofit2.Response<JsonElement>>(
-            { api.getNotifications(authHeader) },
-            { api.getStaffNotifications(authHeader) }
-        )
+        try {
+            val r1 = api.getNotifications(authHeader)
+            if (r1.isSuccessful && r1.body() != null) {
+                val parsed = parseNotificationsJson(r1.body()!!)
+                if (parsed.isNotEmpty()) {
+                    remoteList.addAll(parsed)
+                }
+            }
+        } catch (ignored: Exception) {}
 
-        for (endpoint in notificationEndpoints) {
+        if (remoteList.isEmpty()) {
             try {
-                val resp = endpoint()
-                if (resp.isSuccessful && resp.body() != null) {
-                    val parsed = parseNotificationsJson(resp.body()!!)
+                val r2 = api.getStaffNotifications(authHeader)
+                if (r2.isSuccessful && r2.body() != null) {
+                    val parsed = parseNotificationsJson(r2.body()!!)
                     if (parsed.isNotEmpty()) {
                         remoteList.addAll(parsed)
-                        break
                     }
                 }
             } catch (ignored: Exception) {}
