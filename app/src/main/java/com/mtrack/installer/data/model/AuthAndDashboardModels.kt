@@ -317,3 +317,62 @@ data class DashboardResponse(
     @SerializedName("data")
     val data: ErpDashboardData? = null
 )
+
+/**
+ * Staff GPS Location Update Payload
+ */
+data class LocationUpdateRequest(
+    @SerializedName("user_id")
+    val userId: Int? = null,
+
+    @SerializedName("latitude")
+    val latitude: Double,
+
+    @SerializedName("longitude")
+    val longitude: Double,
+
+    @SerializedName("accuracy")
+    val accuracy: Float = 0.0f,
+
+    @SerializedName("speed")
+    val speed: Float = 0.0f,
+
+    @SerializedName("altitude")
+    val altitude: Double = 0.0,
+
+    @SerializedName("battery_level")
+    val batteryLevel: Int = 0,
+
+    @SerializedName("is_charging")
+    val isCharging: Boolean = false,
+
+    @SerializedName("is_mocked")
+    val isMocked: Boolean = false,
+
+    @SerializedName("provider")
+    val provider: String = "fused"
+)
+
+data class LocationUpdateResponse(
+    @SerializedName("status")
+    val status: String,
+
+    @SerializedName("code")
+    val code: Int,
+
+    @SerializedName("message")
+    val message: String? = null
+)
+
+/**
+ * Enterprise Notification Item for Half-Drawer Sheet
+ */
+data class StaffNotificationItem(
+    val id: String,
+    val title: String,
+    val message: String,
+    val category: String,
+    val timeAgo: String,
+    val isRead: Boolean = false,
+    val type: String = "info"
+)

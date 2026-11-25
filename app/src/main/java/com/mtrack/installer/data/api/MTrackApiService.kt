@@ -37,6 +37,15 @@ interface MTrackApiService {
     ): Response<ApiResponse<InstallSubmissionResult>>
 
     /**
+     * Synchronize live staff GPS coordinates & device battery telematics
+     */
+    @POST("api/v1/update-location")
+    suspend fun updateStaffLocation(
+        @Header("Authorization") bearerToken: String,
+        @Body request: LocationUpdateRequest
+    ): Response<LocationUpdateResponse>
+
+    /**
      * Track status of requests by contact number
      */
     @GET("api/v1/install-requests")
