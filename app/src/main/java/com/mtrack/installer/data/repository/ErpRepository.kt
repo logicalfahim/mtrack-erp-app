@@ -322,7 +322,7 @@ class ErpRepository(
         val vehicles = mutableListOf<SoldVehicleItem>()
         val dues = mutableListOf<ClientDueItem>()
 
-        val itemsArray: JsonArray? = when {
+        val itemsArray: JsonArray = (when {
             json.isJsonArray -> json.asJsonArray
             json.isJsonObject -> {
                 val obj = json.asJsonObject
@@ -334,7 +334,7 @@ class ErpRepository(
                 }
             }
             else -> null
-        } ?: return Pair(emptyList(), emptyList())
+        }) ?: return Pair(emptyList(), emptyList())
 
         var invoiceCounter = 1001
         for (elem in itemsArray) {
