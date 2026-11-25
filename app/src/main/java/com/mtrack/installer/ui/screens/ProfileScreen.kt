@@ -31,6 +31,7 @@ fun ProfileScreen(
 ) {
     val state by dashboardViewModel.uiState.collectAsState()
     val user = state.userProfile
+    val isAdmin = user?.role?.equals("admin", true) == true
     val salesData = state.dashboardData?.salesDepartment
     var showLogoutDialog by remember { mutableStateOf(false) }
 
@@ -78,7 +79,6 @@ fun ProfileScreen(
                     )
                 }
 
-                val isAdmin = user?.role?.equals("admin", true) == true
                 val roleDisplay = if (isAdmin) "ADMIN" else (user?.role?.uppercase() ?: "STAFF")
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
