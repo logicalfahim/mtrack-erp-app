@@ -98,6 +98,44 @@ data class SoldVehicleItem(
 )
 
 /**
+ * Client Due Record with Contact Information
+ */
+data class ClientDueItem(
+    @SerializedName("invoice_id")
+    val invoiceId: Int,
+
+    @SerializedName("invoice_no")
+    val invoiceNo: String,
+
+    @SerializedName("grand_total")
+    val grandTotal: Double,
+
+    @SerializedName("paid_amount")
+    val paidAmount: Double,
+
+    @SerializedName("due_amount")
+    val dueAmount: Double,
+
+    @SerializedName("payment_status")
+    val paymentStatus: String? = null,
+
+    @SerializedName("invoice_date")
+    val invoiceDate: String? = null,
+
+    @SerializedName("vehicle_plate_number")
+    val vehiclePlateNumber: String? = null,
+
+    @SerializedName("vehicle_name")
+    val vehicleName: String? = null,
+
+    @SerializedName("customer_name")
+    val customerName: String? = null,
+
+    @SerializedName("customer_phone")
+    val customerPhone: String? = null
+)
+
+/**
  * Seller / Sales Department Performance Metrics
  */
 data class SellerDashboardMetrics(
@@ -112,6 +150,12 @@ data class SellerDashboardMetrics(
 
     @SerializedName("achieved_qty")
     val achievedQty: Int,
+
+    @SerializedName("last_month_achieved")
+    val lastMonthAchieved: Int = 0,
+
+    @SerializedName("growth_rate")
+    val growthRate: Float = 0f,
 
     @SerializedName("progress_percentage")
     val progressPercentage: Float,
@@ -129,7 +173,13 @@ data class SellerDashboardMetrics(
     val soldVehiclesCount: Int,
 
     @SerializedName("sold_vehicles_list")
-    val soldVehiclesList: List<SoldVehicleItem> = emptyList()
+    val soldVehiclesList: List<SoldVehicleItem> = emptyList(),
+
+    @SerializedName("client_dues_count")
+    val clientDuesCount: Int = 0,
+
+    @SerializedName("client_dues_list")
+    val clientDuesList: List<ClientDueItem> = emptyList()
 )
 
 /**
