@@ -7,6 +7,8 @@ on:
     branches: [ "main" ]
   workflow_dispatch: # Allows 1-click manual trigger from GitHub Actions tab
 
+permissions: write-all
+
 jobs:
   build-apk:
     name: Build & Package APK
@@ -38,13 +40,12 @@ jobs:
       - name: 🔍 Verify and Report Compile Errors
         if: always()
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then
-            echo "Build failed! Dumping log to commit comment..."
-            tail -n 120 build_log.txt > err_summary.txt
-            gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" -F body=@err_summary.txt || true
-            cat err_summary.txt
+            echo "Build failed! Creating diagnostics issue..."
+            tail -n 80 build_log.txt > err_summary.txt
+            gh issue create --title "CI Diagnostics $(date +%s)" --body-file err_summary.txt || true
             exit 1
           fi
 
