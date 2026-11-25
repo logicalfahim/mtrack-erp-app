@@ -38,9 +38,11 @@ fun FleetScreen(
     val salesData = state.dashboardData?.salesDepartment
 
     var searchQuery by remember { mutableStateOf("") }
-    var filterType by remember { mutableIntStateOf(0) } // 0 = All, 1 = Active, 2 = Pending
+    var filterType by remember { mutableIntStateOf(0) } // 0 = All, 1 = Unpaid Dues, 2 = Fully Paid
 
     val vehiclesList = salesData?.soldVehiclesList ?: emptyList()
+    val dueVehiclesCount = vehiclesList.count { it.isDue || (it.dueAmount ?: 0.0) > 0 }
+    val paidVehiclesCount = vehiclesList.size - dueVehiclesCount
 
     val filteredVehicles = remember(vehiclesList, searchQuery, filterType) {
         val q = searchQuery.trim().lowercase()
@@ -52,8 +54,8 @@ fun FleetScreen(
                     (v.vehicleName?.lowercase()?.contains(q) == true)
 
             val matchFilter = when (filterType) {
-                1 -> v.status?.lowercase() == "active"
-                2 -> v.status?.lowercase() != "active"
+                1 -> v.isDue || (v.dueAmount ?: 0.0) > 0 // Unpaid Dues only
+                2 -> !v.isDue && (v.dueAmount ?: 0.0) <= 0 // Fully Paid only
                 else -> true
             }
             matchQuery && matchFilter
@@ -76,7 +78,7 @@ fun FleetScreen(
         ) {
             Column {
                 Text(
-                    text = "Sold Fleet Portfolio",
+                    text = "Sold Fleet Deliveries",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary,
@@ -84,7 +86,7 @@ fun FleetScreen(
                     )
                 )
                 Text(
-                    text = "${filteredVehicles.size} total vehicles under your account",
+                    text = "${filteredVehicles.size} vehicles installed this month under your account",
                     style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontSize = 12.sp)
                 )
             }
@@ -145,19 +147,19 @@ fun FleetScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Segmented Filter Capsules
+        // Segmented Filter Capsules: All, Unpaid Dues, Fully Paid
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            FleetFilterPill(title = "All Fleet (${vehiclesList.size})", isSelected = filterType == 0, onClick = { filterType = 0 })
-            FleetFilterPill(title = "Active Units", isSelected = filterType == 1, onClick = { filterType = 1 })
-            FleetFilterPill(title = "Pending Setup", isSelected = filterType == 2, onClick = { filterType = 2 })
+            FleetFilterPill(title = "All (${vehiclesList.size})", isSelected = filterType == 0, onClick = { filterType = 0 })
+            FleetFilterPill(title = "Unpaid Dues ($dueVehiclesCount)", isSelected = filterType == 1, alertColor = AmberWarning, onClick = { filterType = 1 })
+            FleetFilterPill(title = "Fully Paid ($paidVehiclesCount)", isSelected = filterType == 2, onClick = { filterType = 2 })
         }
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // Lazy Virtualized Fleet List
+        // Virtualized Fleet List with Integrated Dues
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -182,11 +184,11 @@ fun FleetScreen(
                             Icon(imageVector = Icons.Outlined.DirectionsCar, contentDescription = null, tint = TextMuted, modifier = Modifier.size(36.dp))
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "No Fleet Records Found",
+                                text = "No Installed Vehicles Found",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary)
                             )
                             Text(
-                                text = "Try modifying your search phrase or clear active filters.",
+                                text = "No vehicle deliveries recorded under this filter for this month.",
                                 style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary)
                             )
                         }
@@ -194,7 +196,7 @@ fun FleetScreen(
                 }
             } else {
                 items(filteredVehicles, key = { it.id }) { vehicle ->
-                    FleetCardItem(vehicle = vehicle, context = context)
+                    FleetWithDueCardItem(vehicle = vehicle, context = context)
                 }
             }
         }
@@ -205,13 +207,14 @@ fun FleetScreen(
 private fun FleetFilterPill(
     title: String,
     isSelected: Boolean,
+    alertColor: androidx.compose.ui.graphics.Color? = null,
     onClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick),
-        color = if (isSelected) BrandBluePrimary else CardBackground,
+        color = if (isSelected) (alertColor ?: BrandBluePrimary) else CardBackground,
         shape = RoundedCornerShape(20.dp),
         border = if (isSelected) null else CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
     ) {
@@ -219,7 +222,7 @@ private fun FleetFilterPill(
             text = title,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
             style = MaterialTheme.typography.labelSmall.copy(
-                color = if (isSelected) CardBackground else TextSecondary,
+                color = if (isSelected) CardBackground else (alertColor ?: TextSecondary),
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
                 fontSize = 11.sp
             )
@@ -228,21 +231,26 @@ private fun FleetFilterPill(
 }
 
 @Composable
-private fun FleetCardItem(
+private fun FleetWithDueCardItem(
     vehicle: SoldVehicleItem,
     context: android.content.Context
 ) {
+    val isDue = vehicle.isDue || (vehicle.dueAmount ?: 0.0) > 0.0
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardBackground),
-        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
+        border = CardDefaults.outlinedCardBorder().copy(
+            brush = androidx.compose.ui.graphics.SolidColor(if (isDue) AmberWarning.copy(alpha = 0.5f) else BorderSubtle)
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            // Row 1: Client Name + Telematics Online/Pending Status
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -254,12 +262,15 @@ private fun FleetCardItem(
                         modifier = Modifier
                             .size(34.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(BrandBlueLight),
+                            .background(if (isDue) AmberWarning.copy(alpha = 0.12f) else BrandBlueLight),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = initials.ifEmpty { "C" },
-                            style = MaterialTheme.typography.labelMedium.copy(color = BrandBluePrimary, fontWeight = FontWeight.Bold)
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                color = if (isDue) AmberWarning else BrandBluePrimary,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
                     }
 
@@ -275,6 +286,7 @@ private fun FleetCardItem(
                     }
                 }
 
+                // Active Telematics Status
                 val isAct = vehicle.status?.lowercase() == "active"
                 Surface(
                     color = if (isAct) EmeraldBg else AmberWarning.copy(alpha = 0.1f),
@@ -298,7 +310,69 @@ private fun FleetCardItem(
                 }
             }
 
-            // Plate & Telematics Info Capsule
+            // Row 2: Integrated Due Warning Banner (if vehicle has outstanding balance)
+            if (isDue) {
+                Surface(
+                    color = AmberWarning.copy(alpha = 0.08f),
+                    shape = RoundedCornerShape(10.dp),
+                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(AmberWarning.copy(alpha = 0.35f)))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Outlined.ReceiptLong, contentDescription = null, tint = AmberWarning, modifier = Modifier.size(15.dp))
+                            Text(
+                                text = "Outstanding Due: ৳${numberFormatShort(vehicle.dueAmount ?: 0.0)}",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    color = AmberWarning,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 12.sp
+                                )
+                            )
+                        }
+
+                        if (!vehicle.dueInvoiceNo.isNullOrBlank()) {
+                            Text(
+                                text = "#${vehicle.dueInvoiceNo}",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = TextMuted,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
+                    }
+                }
+            } else {
+                Surface(
+                    color = EmeraldBg,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(imageVector = Icons.Outlined.CheckCircle, contentDescription = null, tint = EmeraldSuccess, modifier = Modifier.size(12.dp))
+                        Text(
+                            text = "Payment Status: Fully Paid",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = EmeraldSuccess,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 10.sp
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Row 3: Plate Number, Installed Date & Direct Call Action
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -325,17 +399,40 @@ private fun FleetCardItem(
                 }
 
                 if (!vehicle.customerPhone.isNullOrBlank()) {
-                    IconButton(
+                    Button(
                         onClick = {
                             val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${vehicle.customerPhone}"))
                             context.startActivity(intent)
                         },
-                        modifier = Modifier.size(32.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isDue) AmberWarning else BrandBluePrimary),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
                     ) {
-                        Icon(imageVector = Icons.Outlined.Phone, contentDescription = "Call Client", tint = BrandBluePrimary, modifier = Modifier.size(16.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(imageVector = Icons.Outlined.Phone, contentDescription = null, tint = CardBackground, modifier = Modifier.size(12.dp))
+                            Text(
+                                text = if (isDue) "Call for Due" else "Call Client",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = CardBackground,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 10.5.sp
+                                )
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+private fun numberFormatShort(amount: Double): String {
+    return if (amount >= 100000) {
+        String.format(java.util.Locale.US, "%.1fL", amount / 100000)
+    } else if (amount >= 1000) {
+        String.format(java.util.Locale.US, "%.1fK", amount / 1000)
+    } else {
+        String.format(java.util.Locale.US, "%.0f", amount)
     }
 }

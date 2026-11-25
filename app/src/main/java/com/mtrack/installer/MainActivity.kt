@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
@@ -97,8 +96,8 @@ class MainActivity : ComponentActivity() {
                                                 Column {
                                                     val headerTitle = when (currentRoute) {
                                                         "dashboard"    -> "M TRACK ERP"
+                                                        "staffs"       -> "Staffs Directory"
                                                         "fleet"        -> "Sold Fleet"
-                                                        "receivables"  -> "Receivables Due"
                                                         "profile"      -> "Executive Profile"
                                                         "profile_edit" -> "Edit Profile"
                                                         "about_us"     -> "About M TRACK"
@@ -106,8 +105,8 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                     val headerSubtitle = when (currentRoute) {
                                                         "dashboard"    -> "Sales Operations Hub"
-                                                        "fleet"        -> "Telematics Units Portfolio"
-                                                        "receivables"  -> "Client Recovery Pipeline"
+                                                        "staffs"       -> "Live Active Colleagues"
+                                                        "fleet"        -> "Deliveries & Dues Pacing"
                                                         "profile"      -> authState.currentUser?.fullName ?: "Staff Identity"
                                                         "profile_edit" -> "Personal & Security Details"
                                                         else           -> "Enterprise Fleet Telematics"
@@ -148,7 +147,6 @@ class MainActivity : ComponentActivity() {
                                             }
                                         },
                                         actions = {
-                                            // Top Right Profile Shortcut Icon
                                             IconButton(
                                                 onClick = { currentRoute = "profile" }
                                             ) {
@@ -172,6 +170,7 @@ class MainActivity : ComponentActivity() {
                                         containerColor = CardBackground,
                                         tonalElevation = 2.dp
                                     ) {
+                                        // 1. Overview
                                         NavigationBarItem(
                                             selected = currentRoute == "dashboard",
                                             onClick = { currentRoute = "dashboard" },
@@ -184,6 +183,20 @@ class MainActivity : ComponentActivity() {
                                             )
                                         )
 
+                                        // 2. Staffs (Right beside Overview as requested)
+                                        NavigationBarItem(
+                                            selected = currentRoute == "staffs",
+                                            onClick = { currentRoute = "staffs" },
+                                            icon = { Icon(Icons.Outlined.PeopleOutline, contentDescription = "Staffs") },
+                                            label = { Text("Staffs", fontSize = 11.sp, fontWeight = if (currentRoute == "staffs") FontWeight.Bold else FontWeight.Normal) },
+                                            colors = NavigationBarItemDefaults.colors(
+                                                selectedIconColor = BrandBluePrimary,
+                                                selectedTextColor = BrandBluePrimary,
+                                                indicatorColor = BrandBlueLight
+                                            )
+                                        )
+
+                                        // 3. Fleet (Monthly sold fleet with integrated Dues)
                                         NavigationBarItem(
                                             selected = currentRoute == "fleet",
                                             onClick = { currentRoute = "fleet" },
@@ -196,18 +209,7 @@ class MainActivity : ComponentActivity() {
                                             )
                                         )
 
-                                        NavigationBarItem(
-                                            selected = currentRoute == "receivables",
-                                            onClick = { currentRoute = "receivables" },
-                                            icon = { Icon(Icons.Outlined.ReceiptLong, contentDescription = "Receivables") },
-                                            label = { Text("Receivables", fontSize = 11.sp, fontWeight = if (currentRoute == "receivables") FontWeight.Bold else FontWeight.Normal) },
-                                            colors = NavigationBarItemDefaults.colors(
-                                                selectedIconColor = BrandBluePrimary,
-                                                selectedTextColor = BrandBluePrimary,
-                                                indicatorColor = BrandBlueLight
-                                            )
-                                        )
-
+                                        // 4. Profile
                                         NavigationBarItem(
                                             selected = currentRoute == "profile" || currentRoute == "profile_edit",
                                             onClick = { currentRoute = "profile" },
@@ -233,13 +235,13 @@ class MainActivity : ComponentActivity() {
                                                 dashboardViewModel = dashboardViewModel
                                             )
                                         }
-                                        "fleet" -> {
-                                            FleetScreen(
+                                        "staffs" -> {
+                                            StaffsScreen(
                                                 dashboardViewModel = dashboardViewModel
                                             )
                                         }
-                                        "receivables" -> {
-                                            ReceivablesScreen(
+                                        "fleet" -> {
+                                            FleetScreen(
                                                 dashboardViewModel = dashboardViewModel
                                             )
                                         }

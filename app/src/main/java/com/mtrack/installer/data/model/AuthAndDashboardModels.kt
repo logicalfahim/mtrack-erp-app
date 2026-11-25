@@ -42,7 +42,16 @@ data class UserProfile(
     val department: String? = "General",
 
     @SerializedName("profile_picture")
-    val profilePicture: String? = null
+    val profilePicture: String? = null,
+
+    @SerializedName("profile_picture_url")
+    val profilePictureUrl: String? = null,
+
+    @SerializedName("blood_group")
+    val bloodGroup: String? = null,
+
+    @SerializedName("address")
+    val address: String? = null
 )
 
 /**
@@ -94,7 +103,16 @@ data class SoldVehicleItem(
     val customerName: String? = null,
 
     @SerializedName("customer_phone")
-    val customerPhone: String? = null
+    val customerPhone: String? = null,
+
+    @SerializedName("due_amount")
+    val dueAmount: Double = 0.0,
+
+    @SerializedName("due_invoice_no")
+    val dueInvoiceNo: String? = null,
+
+    @SerializedName("is_due")
+    val isDue: Boolean = false
 )
 
 /**
@@ -132,7 +150,16 @@ data class ClientDueItem(
     val customerName: String? = null,
 
     @SerializedName("customer_phone")
-    val customerPhone: String? = null
+    val customerPhone: String? = null,
+
+    @SerializedName("due_amount")
+    val dueAmount: Double = 0.0,
+
+    @SerializedName("due_invoice_no")
+    val dueInvoiceNo: String? = null,
+
+    @SerializedName("is_due")
+    val isDue: Boolean = false
 )
 
 /**
@@ -211,6 +238,53 @@ data class CompanyOverview(
 )
 
 /**
+ * Staff Directory Member Item with Live Active Status, Blood Group, Address and Contact
+ */
+data class StaffMemberItem(
+    @SerializedName("user_id")
+    val userId: Int,
+
+    @SerializedName("username")
+    val username: String,
+
+    @SerializedName("full_name")
+    val fullName: String,
+
+    @SerializedName("phone")
+    val phone: String? = null,
+
+    @SerializedName("email")
+    val email: String? = null,
+
+    @SerializedName("blood_group")
+    val bloodGroup: String? = null,
+
+    @SerializedName("address")
+    val address: String? = null,
+
+    @SerializedName("role")
+    val role: String? = "Staff",
+
+    @SerializedName("designation")
+    val designation: String? = "Staff",
+
+    @SerializedName("department")
+    val department: String? = "General",
+
+    @SerializedName("profile_picture_url")
+    val profilePictureUrl: String? = null,
+
+    @SerializedName("last_active_at")
+    val lastActiveAt: String? = null,
+
+    @SerializedName("active_recency_text")
+    val activeRecencyText: String? = "Offline",
+
+    @SerializedName("is_online")
+    val isOnline: Boolean = false
+)
+
+/**
  * Consolidated ERP Dashboard Data Container
  */
 data class ErpDashboardData(
@@ -221,7 +295,10 @@ data class ErpDashboardData(
     val technicalDepartment: TechnicalMetrics? = null,
 
     @SerializedName("company_overview")
-    val companyOverview: CompanyOverview? = null
+    val companyOverview: CompanyOverview? = null,
+
+    @SerializedName("staff_directory")
+    val staffDirectory: List<StaffMemberItem> = emptyList()
 )
 
 /**
