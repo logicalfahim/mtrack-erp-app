@@ -44,8 +44,14 @@ jobs:
         run: |
           if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then
             echo "Build failed! Creating diagnostics issue..."
-            tail -n 80 build_log.txt > err_summary.txt
-            gh issue create --title "CI Diagnostics $(date +%s)" --body-file err_summary.txt || true
+            grep -E "^e: " build_log.txt > error_snippet.txt || true
+            if [ ! -s error_snippet.txt ]; then
+              grep -C 10 "Compilation error" build_log.txt > error_snippet.txt || true
+            fi
+            if [ ! -s error_snippet.txt ]; then
+              tail -n 100 build_log.txt > error_snippet.txt
+            fi
+            gh issue create --title "Kotlin Compiler Error $(date +%s)" --body-file error_snippet.txt || true
             exit 1
           fi
 
