@@ -79,7 +79,7 @@ class ErpRepository(
                                     currentData = currentData.copy(staffDirectory = altStaff.body()!!.data!!)
                                 }
                             }
-                        } catch (_: Exception) {}
+                        } catch (ignored: Exception) {}
                     }
 
                     // Fallback for Sales Department if missing in main response
@@ -89,7 +89,7 @@ class ErpRepository(
                             if (salesResp.isSuccessful && salesResp.body()?.data != null) {
                                 currentData = currentData.copy(salesDepartment = salesResp.body()!!.data)
                             }
-                        } catch (_: Exception) {}
+                        } catch (ignored: Exception) {}
                     }
 
                     dashResponse = dashResponse.copy(data = currentData)
