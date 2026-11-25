@@ -20,7 +20,9 @@ data class AuthUiState(
     val errorMessage: String? = null,
     val isLoggedIn: Boolean = false,
     val currentUser: UserProfile? = null
-)
+) {
+    val isAuthenticated: Boolean get() = isLoggedIn
+}
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -46,6 +48,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun togglePasswordVisibility() {
         _uiState.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
     }
+
+    fun submitLogin() = login()
 
     fun login() {
         val username = _uiState.value.usernameInput.trim()

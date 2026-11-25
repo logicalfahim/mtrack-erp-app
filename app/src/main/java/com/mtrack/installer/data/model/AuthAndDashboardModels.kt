@@ -152,9 +152,6 @@ data class ClientDueItem(
     @SerializedName("customer_phone")
     val customerPhone: String? = null,
 
-    @SerializedName("due_amount")
-    val dueAmount: Double = 0.0,
-
     @SerializedName("due_invoice_no")
     val dueInvoiceNo: String? = null,
 

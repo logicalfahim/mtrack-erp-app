@@ -25,6 +25,8 @@ class SessionManager(context: Context) {
 
     fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
 
+    fun getAuthToken(): String? = getToken()
+
     fun getUser(): UserProfile? {
         val json = prefs.getString(KEY_USER_JSON, null) ?: return null
         return try {
