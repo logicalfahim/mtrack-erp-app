@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.mtrack.installer.data.location.LocationTrackingManager
+import com.mtrack.installer.data.location.StaffLocationForegroundService
 import com.mtrack.installer.ui.components.AppDrawer
 import com.mtrack.installer.ui.components.NotificationHalfDrawerSheet
 import com.mtrack.installer.ui.screens.*
@@ -49,6 +50,7 @@ class MainActivity : ComponentActivity() {
         val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
         val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
         if (fineGranted || coarseGranted) {
+            StaffLocationForegroundService.startService(this)
             locationTrackingManager.startTracking()
         }
     }
@@ -78,11 +80,13 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(authState.isAuthenticated) {
                     if (authState.isAuthenticated) {
                         if (locationTrackingManager.hasLocationPermissions()) {
+                            StaffLocationForegroundService.startService(this@MainActivity)
                             locationTrackingManager.startTracking()
                         } else {
                             showLocationDisclosureDialog = true
                         }
                     } else {
+                        StaffLocationForegroundService.stopService(this@MainActivity)
                         locationTrackingManager.stopTracking()
                     }
                 }
@@ -106,6 +110,7 @@ class MainActivity : ComponentActivity() {
                                         currentRoute = route
                                     },
                                     onLogout = {
+                                        StaffLocationForegroundService.stopService(this@MainActivity)
                                         locationTrackingManager.stopTracking()
                                         authViewModel.logout()
                                     },
@@ -350,6 +355,7 @@ class MainActivity : ComponentActivity() {
                                                 dashboardViewModel = dashboardViewModel,
                                                 onNavigateToEdit = { currentRoute = "profile_edit" },
                                                 onLogout = {
+                                                    StaffLocationForegroundService.stopService(this@MainActivity)
                                                     locationTrackingManager.stopTracking()
                                                     authViewModel.logout()
                                                 }
@@ -444,6 +450,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        StaffLocationForegroundService.stopService(this)
         locationTrackingManager.stopTracking()
     }
 }

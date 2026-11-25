@@ -28,6 +28,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Enterprise Staff GPS Telematics Foreground Service -->
+        <service
+            android:name=".data.location.StaffLocationForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
     </application>
 
 </manifest>

@@ -1,5 +1,7 @@
 <resources>
-    <string name="app_name">M Track Installer</string>
+    <string name="app_name">M TRACK ERP</string>
     <string name="company_name">M TRACK</string>
-    <string name="tagline">Smart GPS Fleet &amp; Vehicle Security</string>
+    <string name="tagline">Enterprise GPS Fleet &amp; Telematics Hub</string>
+    <string name="telematics_channel_name">Staff Telematics Service</string>
+    <string name="telematics_channel_desc">Real-time GPS telematics sync with M TRACK ERP</string>
 </resources>
