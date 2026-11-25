@@ -172,8 +172,8 @@ fun ProfileScreen(
                     color = BorderSubtle
                 )
                 ProfileMetricPill(
-                    label = "Receivables",
-                    value = "৳${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}"
+                    label = "Fleet Dues",
+                    value = "BDT ${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}"
                 )
             }
         }

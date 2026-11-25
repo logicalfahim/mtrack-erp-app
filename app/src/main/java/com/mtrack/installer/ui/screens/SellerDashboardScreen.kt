@@ -388,7 +388,7 @@ fun SellerDashboardScreen(
                     ) {
                         Column {
                             Text(
-                                text = "৳${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}",
+                                text = "BDT ${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}",
                                 style = MaterialTheme.typography.headlineSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = AmberWarning,
@@ -543,7 +543,7 @@ fun SellerDashboardScreen(
                         FilterCapsule(title = "Active Units", isSelected = filterType == 1, onClick = { filterType = 1 })
                         FilterCapsule(title = "Pending Setup", isSelected = filterType == 2, onClick = { filterType = 2 })
                     } else {
-                        FilterCapsule(title = "High Value (>৳5k)", isSelected = filterType == 1, onClick = { filterType = 1 })
+                        FilterCapsule(title = "High Value (>BDT 5k)", isSelected = filterType == 1, onClick = { filterType = 1 })
                         FilterCapsule(title = "Standard Dues", isSelected = filterType == 2, onClick = { filterType = 2 })
                     }
                 }
@@ -892,7 +892,7 @@ private fun ModernClientDueRow(
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "৳${numberFormatShort(due.dueAmount)} Due",
+                        text = "BDT ${numberFormatShort(due.dueAmount)} Due",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = AmberWarning,
@@ -931,7 +931,7 @@ private fun ModernClientDueRow(
                             )
                         )
                         Text(
-                            text = "Total: ৳${numberFormatShort(due.grandTotal)}",
+                            text = "Total: BDT ${numberFormatShort(due.grandTotal)}",
                             style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
                         )
                     }

@@ -300,7 +300,7 @@ fun sampleNotifications(): List<StaffNotificationItem> = listOf(
     StaffNotificationItem(
         id = "1",
         title = "Vehicle Commission Credited",
-        message = "৳500 commission for Toyota Premio (GA 11-2233) has been approved and added to your monthly payout.",
+        message = "BDT 500 commission for Toyota Premio (GA 11-2233) has been approved and added to your monthly payout.",
         category = "Billing",
         timeAgo = "12m ago",
         isRead = false
@@ -332,7 +332,7 @@ fun sampleNotifications(): List<StaffNotificationItem> = listOf(
     StaffNotificationItem(
         id = "5",
         title = "Client Overdue Payment Alert",
-        message = "Invoice #INV-2026-1088 for Hanif Paribahan (৳12,000) is pending collection.",
+        message = "Invoice #INV-2026-1088 for Hanif Paribahan (BDT 12,000) is pending collection.",
         category = "Billing",
         timeAgo = "2 days ago",
         isRead = true

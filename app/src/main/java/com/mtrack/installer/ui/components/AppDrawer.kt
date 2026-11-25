@@ -239,21 +239,21 @@ fun AppDrawer(
                 )
 
                 DrawerMenuItem(
-                    title = "Sold Fleet Portfolio",
-                    icon = Icons.Outlined.DirectionsCar,
-                    isSelected = currentRoute == "fleet",
+                    title = "Staffs Directory",
+                    icon = Icons.Outlined.PeopleOutline,
+                    isSelected = currentRoute == "staffs",
                     onClick = {
-                        onNavigate("fleet")
+                        onNavigate("staffs")
                         onCloseDrawer()
                     }
                 )
 
                 DrawerMenuItem(
-                    title = "Receivables Recovery",
-                    icon = Icons.Outlined.ReceiptLong,
-                    isSelected = currentRoute == "receivables",
+                    title = "Sold Fleet Portfolio",
+                    icon = Icons.Outlined.DirectionsCar,
+                    isSelected = currentRoute == "fleet",
                     onClick = {
-                        onNavigate("receivables")
+                        onNavigate("fleet")
                         onCloseDrawer()
                     }
                 )

@@ -6,7 +6,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Clean, modern typography with reduced boldness (বোল্ডনেস কম, চোখের জন্য আরামদায়ক)
+// Clean, modern typography with reduced boldness and balanced legibility
 val Typography = Typography(
     headlineLarge = TextStyle(
         fontFamily = FontFamily.Default,

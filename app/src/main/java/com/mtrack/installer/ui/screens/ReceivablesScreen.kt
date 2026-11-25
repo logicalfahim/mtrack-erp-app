@@ -38,7 +38,7 @@ fun ReceivablesScreen(
     val salesData = state.dashboardData?.salesDepartment
 
     var searchQuery by remember { mutableStateOf("") }
-    var filterType by remember { mutableIntStateOf(0) } // 0 = All, 1 = High (>৳5k), 2 = Standard
+    var filterType by remember { mutableIntStateOf(0) } // 0 = All, 1 = High (>BDT 5k), 2 = Standard
 
     val duesList = salesData?.clientDuesList ?: emptyList()
 
@@ -95,7 +95,7 @@ fun ReceivablesScreen(
                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(AmberWarning.copy(alpha = 0.3f)))
             ) {
                 Text(
-                    text = "৳${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}",
+                    text = "BDT ${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}",
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.labelSmall.copy(
                         color = AmberWarning,
@@ -152,7 +152,7 @@ fun ReceivablesScreen(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             ReceivableFilterPill(title = "All Invoices (${duesList.size})", isSelected = filterType == 0, onClick = { filterType = 0 })
-            ReceivableFilterPill(title = "High Value (>৳5k)", isSelected = filterType == 1, onClick = { filterType = 1 })
+            ReceivableFilterPill(title = "High Value (>5k)", isSelected = filterType == 1, onClick = { filterType = 1 })
             ReceivableFilterPill(title = "Standard Dues", isSelected = filterType == 2, onClick = { filterType = 2 })
         }
 
@@ -278,7 +278,7 @@ private fun ReceivableCardItem(
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "৳${numberFormatShort(due.dueAmount)} Due",
+                        text = "BDT ${numberFormatShort(due.dueAmount)} Due",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             color = AmberWarning,
@@ -317,7 +317,7 @@ private fun ReceivableCardItem(
                             )
                         )
                         Text(
-                            text = "Total: ৳${numberFormatShort(due.grandTotal)}",
+                            text = "Total: BDT ${numberFormatShort(due.grandTotal)}",
                             style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary)
                         )
                     }
@@ -339,7 +339,7 @@ private fun ReceivableCardItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Paid: ৳${numberFormatShort(due.paidAmount)}",
+                            text = "Paid: BDT ${numberFormatShort(due.paidAmount)}",
                             style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.sp)
                         )
                         Text(

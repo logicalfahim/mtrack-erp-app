@@ -327,7 +327,7 @@ private fun FleetWithDueCardItem(
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Icon(imageVector = Icons.Outlined.ReceiptLong, contentDescription = null, tint = AmberWarning, modifier = Modifier.size(15.dp))
                             Text(
-                                text = "Outstanding Due: ৳${numberFormatShort(vehicle.dueAmount ?: 0.0)}",
+                                text = "Outstanding Due: BDT ${numberFormatShort(vehicle.dueAmount ?: 0.0)}",
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     color = AmberWarning,
                                     fontWeight = FontWeight.Bold,
