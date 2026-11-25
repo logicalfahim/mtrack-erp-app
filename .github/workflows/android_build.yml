@@ -31,7 +31,16 @@ jobs:
         run: chmod +x gradlew
 
       - name: 🛠️ Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: |
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build_output.log
+
+      - name: 📝 Show Build Log on Failure
+        if: failure()
+        run: |
+          echo "### ⚠️ Build Failure Diagnostics" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          tail -n 80 build_output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: 📦 Upload Ready-to-Install APK
         uses: actions/upload-artifact@v4
