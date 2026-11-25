@@ -33,12 +33,14 @@ jobs:
         run: chmod +x gradlew
 
       - name: 🛠️ Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build_log.txt
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build_log.txt
 
       - name: 🚨 Report Diagnostics on Failure
         if: failure()
         run: |
-          tail -n 120 build_log.txt > err_summary.txt || true
+          grep -C 3 -E "(e: |FAILURE|Compilation error|Unresolved reference)" build_log.txt > err_summary.txt || tail -n 100 build_log.txt > err_summary.txt
           gh issue create --title "Build Diagnostic: $(git rev-parse --short HEAD)" --body-file err_summary.txt --repo logicalfahim/mtrack-erp-app || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
