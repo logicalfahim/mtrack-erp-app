@@ -70,7 +70,7 @@ class StaffLocationForegroundService : Service() {
     }
 
     private fun startForegroundTracking() {
-        val notification = createNotification("Staff GPS Telematics Active", "Real-time location synchronized with M TRACK ERP")
+        val notification = createNotification("Staff GPS Telematics Active", "Real-time location synchronized with M ERP")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

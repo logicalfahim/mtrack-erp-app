@@ -282,7 +282,7 @@ fun ProfileScreen(
                 Icon(imageVector = Icons.Outlined.Logout, contentDescription = null, tint = RoseError, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Sign Out from M TRACK ERP",
+                    text = "Sign Out from M ERP",
                     style = MaterialTheme.typography.titleMedium.copy(
                         color = RoseError,
                         fontWeight = FontWeight.SemiBold,

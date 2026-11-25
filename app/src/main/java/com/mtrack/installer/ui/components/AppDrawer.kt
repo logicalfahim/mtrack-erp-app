@@ -84,7 +84,7 @@ fun AppDrawer(
                         }
                         Column {
                             Text(
-                                text = "M TRACK ERP",
+                                text = "M ERP",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = CardBackground,
@@ -269,7 +269,7 @@ fun AppDrawer(
                 )
 
                 DrawerMenuItem(
-                    title = "About M TRACK ERP",
+                    title = "About M ERP",
                     icon = Icons.Outlined.Info,
                     isSelected = currentRoute == "about_us",
                     onClick = {

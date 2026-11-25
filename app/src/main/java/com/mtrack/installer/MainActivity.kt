@@ -146,7 +146,7 @@ class MainActivity : ComponentActivity() {
                                                 }
                                                 Column {
                                                     val headerTitle = when (currentRoute) {
-                                                        "dashboard"    -> "M TRACK ERP"
+                                                        "dashboard"    -> "M ERP"
                                                         "staffs"       -> "Staffs Directory"
                                                         "fleet"        -> "Sold Fleet"
                                                         "profile"      -> "Executive Profile"
@@ -405,7 +405,7 @@ class MainActivity : ComponentActivity() {
                                         },
                                         text = {
                                             Text(
-                                                text = "M TRACK ERP collects location data in real time to enable accurate field staff dispatching, attendance verification, and fleet operations even when the app is running in the background or closed.\n\nYour location is encrypted and transmitted securely to M TRACK Enterprise ERP servers.",
+                                                text = "M ERP collects location data in real time to enable accurate field staff dispatching, attendance verification, and fleet operations even when the app is running in the background or closed.\n\nYour location is encrypted and transmitted securely to M TRACK Enterprise ERP servers.",
                                                 fontSize = 13.sp,
                                                 lineHeight = 18.sp,
                                                 color = Color(0xFF475569)
