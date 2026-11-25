@@ -51,22 +51,23 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Brand Logo Header
+            // Enterprise Brand Logo & Headline
             Box(
                 modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(BrandBlueLight)
-                    .border(1.5.dp, BrandBlueBorder, CircleShape),
+                    .size(68.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(BrandBluePrimary),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.GpsFixed,
-                    contentDescription = "M Track Logo",
-                    tint = BrandBluePrimary,
-                    modifier = Modifier.size(34.dp)
+                Text(
+                    text = "M",
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        color = CardBackground,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 32.sp
+                    )
                 )
             }
 
@@ -74,14 +75,15 @@ fun LoginScreen(
                 Text(
                     text = "M TRACK ERP",
                     style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
                         color = TextPrimary,
-                        letterSpacing = 1.sp
+                        letterSpacing = 0.5.sp,
+                        fontSize = 22.sp
                     )
                 )
                 Text(
-                    text = "Enterprise Mobile Command Center",
-                    style = MaterialTheme.typography.bodySmall.copy(
+                    text = "Enterprise Fleet & Sales Command",
+                    style = MaterialTheme.typography.bodyMedium.copy(
                         color = TextSecondary,
                         fontWeight = FontWeight.Normal
                     ),
@@ -89,42 +91,47 @@ fun LoginScreen(
                 )
             }
 
-            // Main Login Card
+            // Main Authentication Card (Ramp/Stripe Style)
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(containerColor = CardBackground),
                 border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(22.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    modifier = Modifier.padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Sign In to Your Workspace",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Sign In to Your Workspace",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                fontSize = 16.sp
+                            )
                         )
-                    )
-                    Text(
-                        text = "Log in with your official staff credentials to view your departmental dashboard.",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = TextSecondary,
-                            lineHeight = 18.sp
+                        Text(
+                            text = "Enter your official staff credentials to access your departmental data.",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = TextSecondary,
+                                lineHeight = 18.sp
+                            )
                         )
-                    )
+                    }
 
-                    // Error banner
+                    // Error Notification Banner
                     if (!state.errorMessage.isNullOrBlank()) {
                         Surface(
                             color = RoseBg,
-                            shape = RoundedCornerShape(10.dp),
+                            shape = RoundedCornerShape(12.dp),
                             border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(RoseError.copy(alpha = 0.3f)))
                         ) {
                             Row(
-                                modifier = Modifier.padding(10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
@@ -132,7 +139,7 @@ fun LoginScreen(
                                     imageVector = Icons.Outlined.ErrorOutline,
                                     contentDescription = null,
                                     tint = RoseError,
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
                                 Text(
                                     text = state.errorMessage ?: "",
@@ -146,11 +153,11 @@ fun LoginScreen(
                     }
 
                     // Username Input
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = "Username, Phone or Email",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
                                 color = TextPrimary
                             )
                         )
@@ -158,7 +165,7 @@ fun LoginScreen(
                             value = state.usernameInput,
                             onValueChange = { authViewModel.onUsernameChange(it) },
                             placeholder = {
-                                Text(text = "e.g. kabir_sales or 017XXXXXXXX", style = MaterialTheme.typography.bodyMedium.copy(color = TextMuted))
+                                Text(text = "e.g. fahim_sales or 017XXXXXXXX", style = MaterialTheme.typography.bodyMedium.copy(color = TextMuted))
                             },
                             leadingIcon = {
                                 Icon(imageVector = Icons.Outlined.Person, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp))
@@ -173,18 +180,18 @@ fun LoginScreen(
                             colors = OutlinedTextFieldDefaults.colors(
                                 unfocusedBorderColor = BorderSubtle,
                                 focusedBorderColor = BrandBluePrimary,
-                                unfocusedContainerColor = CardBackground,
+                                unfocusedContainerColor = SurfaceBackground,
                                 focusedContainerColor = CardBackground
                             )
                         )
                     }
 
                     // Password Input
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "Account Password",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Medium,
+                            text = "Password",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
                                 color = TextPrimary
                             )
                         )
@@ -192,7 +199,7 @@ fun LoginScreen(
                             value = state.passwordInput,
                             onValueChange = { authViewModel.onPasswordChange(it) },
                             placeholder = {
-                                Text(text = "Enter your password", style = MaterialTheme.typography.bodyMedium.copy(color = TextMuted))
+                                Text(text = "Enter your staff password", style = MaterialTheme.typography.bodyMedium.copy(color = TextMuted))
                             },
                             leadingIcon = {
                                 Icon(imageVector = Icons.Outlined.Lock, contentDescription = null, tint = TextMuted, modifier = Modifier.size(18.dp))
@@ -201,7 +208,7 @@ fun LoginScreen(
                                 IconButton(onClick = { authViewModel.togglePasswordVisibility() }) {
                                     Icon(
                                         imageVector = if (state.isPasswordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                                        contentDescription = null,
+                                        contentDescription = "Toggle password",
                                         tint = TextMuted,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -218,13 +225,13 @@ fun LoginScreen(
                             keyboardActions = KeyboardActions(
                                 onDone = {
                                     focusManager.clearFocus()
-                                    authViewModel.login()
+                                    authViewModel.submitLogin()
                                 }
                             ),
                             colors = OutlinedTextFieldDefaults.colors(
                                 unfocusedBorderColor = BorderSubtle,
                                 focusedBorderColor = BrandBluePrimary,
-                                unfocusedContainerColor = CardBackground,
+                                unfocusedContainerColor = SurfaceBackground,
                                 focusedContainerColor = CardBackground
                             )
                         )
@@ -232,61 +239,77 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Sign In Button
+                    // Sign In Submit Button
                     Button(
                         onClick = {
                             focusManager.clearFocus()
-                            authViewModel.login()
+                            authViewModel.submitLogin()
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp),
+                            .height(50.dp),
+                        enabled = !state.isLoading,
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BrandBluePrimary),
-                        enabled = !state.isLoading
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = BrandBluePrimary,
+                            disabledContainerColor = BrandBluePrimary.copy(alpha = 0.5f)
+                        )
                     ) {
                         if (state.isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
-                                color = CardBackground,
-                                strokeWidth = 2.dp
+                                strokeWidth = 2.dp,
+                                color = CardBackground
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "Signing In...", style = MaterialTheme.typography.labelLarge.copy(color = CardBackground))
                         } else {
-                            Icon(imageVector = Icons.Outlined.Login, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Sign In to ERP",
-                                style = MaterialTheme.typography.labelLarge.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    color = CardBackground
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Sign In to ERP",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = CardBackground,
+                                        fontSize = 15.sp
+                                    )
                                 )
-                            )
+                                Icon(
+                                    imageVector = Icons.Outlined.ArrowForward,
+                                    contentDescription = null,
+                                    tint = CardBackground,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // Footer Support Info
+            // Quick Helpline Capsule
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(CardBackground)
+                    .border(1.dp, BorderSubtle, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TextButton(
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:09638988988"))
-                        context.startActivity(intent)
-                    }
-                ) {
-                    Icon(imageVector = Icons.Outlined.SupportAgent, contentDescription = null, tint = BrandBluePrimary, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "IT Helpdesk: 09638-988988",
-                        style = MaterialTheme.typography.bodySmall.copy(color = BrandBluePrimary, fontWeight = FontWeight.Medium)
+                Icon(
+                    imageVector = Icons.Outlined.Phone,
+                    contentDescription = null,
+                    tint = BrandBluePrimary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = "IT Helpdesk: 09638-988988",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = TextSecondary,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 11.5.sp
                     )
-                }
+                )
             }
         }
     }
