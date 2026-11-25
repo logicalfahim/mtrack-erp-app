@@ -111,8 +111,10 @@ fun AppDrawer(
                 .padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            val isSales = currentUser?.role?.lowercase() in listOf("seller", "sales", "marketing", "sales_executive") || currentUser?.department?.lowercase()?.contains("sales") == true
+
             DrawerMenuItem(
-                title = "Department Dashboard",
+                title = if (isSales) "Sales Dashboard" else "Department Dashboard",
                 icon = Icons.Outlined.Dashboard,
                 isSelected = currentRoute == "dashboard",
                 onClick = {
@@ -121,18 +123,21 @@ fun AppDrawer(
                 }
             )
 
-            DrawerMenuItem(
-                title = "New Installation Request",
-                icon = Icons.Outlined.AddCircleOutline,
-                isSelected = currentRoute == "install_wizard",
-                onClick = {
-                    onNavigate("install_wizard")
-                    onCloseDrawer()
-                }
-            )
+            // Installation requests are strictly for Technical / Support roles
+            if (!isSales && currentUser?.role?.lowercase() in listOf("technician", "installer", "support", "technical", "admin", "superadmin")) {
+                DrawerMenuItem(
+                    title = "Installation Operations",
+                    icon = Icons.Outlined.Build,
+                    isSelected = currentRoute == "install_wizard",
+                    onClick = {
+                        onNavigate("install_wizard")
+                        onCloseDrawer()
+                    }
+                )
+            }
 
             DrawerMenuItem(
-                title = "About Us (Company)",
+                title = "About M TRACK ERP",
                 icon = Icons.Outlined.Info,
                 isSelected = currentRoute == "about_us",
                 onClick = {

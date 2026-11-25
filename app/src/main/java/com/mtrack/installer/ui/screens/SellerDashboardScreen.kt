@@ -35,7 +35,7 @@ import java.util.*
 @Composable
 fun SellerDashboardScreen(
     dashboardViewModel: DashboardViewModel,
-    onNavigateToInstall: () -> Unit
+    onNavigateToInstall: (() -> Unit)? = null
 ) {
     val state by dashboardViewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -362,49 +362,31 @@ fun SellerDashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Earned Commission
+                // Sold Vehicles Count (Clicking switches to Fleet Tab)
                 KpiMetricCard(
-                    modifier = Modifier.weight(1f),
-                    title = "Commission",
-                    value = "৳${numberFormatShort(salesData?.earnedCommission ?: 0.0)}",
-                    subtitle = "Month-to-date earnings",
-                    icon = Icons.Outlined.Payments,
-                    iconTint = EmeraldSuccess,
-                    iconBg = EmeraldBg
-                )
-
-                // Quick Action: New Install / Sale
-                Card(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable(onClick = onNavigateToInstall),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = BrandBluePrimary),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(CardBackground.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(imageVector = Icons.Outlined.AddCircleOutline, contentDescription = null, tint = CardBackground, modifier = Modifier.size(16.dp))
-                        }
-                        Text(
-                            text = "New Sale / Install",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold, color = CardBackground, fontSize = 13.sp)
-                        )
-                        Text(
-                            text = "Onboard vehicle fleet",
-                            style = MaterialTheme.typography.labelSmall.copy(color = CardBackground.copy(alpha = 0.85f), fontSize = 10.sp)
-                        )
-                    }
-                }
+                        .clickable { selectedTab = 0 },
+                    title = "Sold Fleet (বিক্রি)",
+                    value = "${salesData?.soldVehiclesCount ?: 0}",
+                    subtitle = "Vehicles sold this month",
+                    icon = Icons.Outlined.DirectionsCar,
+                    iconTint = BrandBluePrimary,
+                    iconBg = BrandBlueLight
+                )
+
+                // Unpaid Due Invoices Count (Clicking switches to Due Tab)
+                KpiMetricCard(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { selectedTab = 1 },
+                    title = "Pending Dues",
+                    value = "${salesData?.clientDuesCount ?: 0}",
+                    subtitle = "Invoices awaiting recovery",
+                    icon = Icons.Outlined.PhoneCallback,
+                    iconTint = AmberWarning,
+                    iconBg = AmberWarning.copy(alpha = 0.12f)
+                )
             }
         }
 

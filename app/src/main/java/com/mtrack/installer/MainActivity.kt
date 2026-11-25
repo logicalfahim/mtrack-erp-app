@@ -156,11 +156,7 @@ class MainActivity : ComponentActivity() {
                                 when (currentRoute) {
                                     "dashboard" -> {
                                         SellerDashboardScreen(
-                                            dashboardViewModel = dashboardViewModel,
-                                            onNavigateToInstall = {
-                                                currentRoute = "install_wizard"
-                                                installViewModel.resetForm()
-                                            }
+                                            dashboardViewModel = dashboardViewModel
                                         )
                                     }
                                     "install_wizard" -> {
