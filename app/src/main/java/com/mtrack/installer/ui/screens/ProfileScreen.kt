@@ -78,9 +78,12 @@ fun ProfileScreen(
                     )
                 }
 
+                val isAdmin = user?.role?.equals("admin", true) == true
+                val roleDisplay = if (isAdmin) "ADMIN" else (user?.role?.uppercase() ?: "STAFF")
+
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = user?.fullName ?: "Fahim Ahmed",
+                        text = user?.fullName ?: (if (isAdmin) "System Administrator" else "Fahim Ahmed"),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary,
@@ -88,7 +91,7 @@ fun ProfileScreen(
                         )
                     )
                     Text(
-                        text = "ID: #MTK-USR-${user?.userId ?: 12} • ${user?.role?.uppercase() ?: "SELLER"}",
+                        text = "ID: #MTK-USR-${user?.userId ?: 12} • $roleDisplay",
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = TextMuted,
                             fontFamily = FontFamily.Monospace,
@@ -97,13 +100,15 @@ fun ProfileScreen(
                     )
                 }
 
+                val designationDisplay = if (isAdmin) "System Administrator • Management" else "${user?.designation ?: "Sales & Marketing"} • ${user?.department ?: "Enterprise Sales"}"
+
                 Surface(
                     color = BrandBlueLight,
                     shape = RoundedCornerShape(20.dp),
                     border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BrandBlueBorder.copy(alpha = 0.6f)))
                 ) {
                     Text(
-                        text = "${user?.designation ?: "Sales & Marketing"} • ${user?.department ?: "Enterprise Sales"}",
+                        text = designationDisplay,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall.copy(
                             color = BrandBluePrimary,
@@ -152,7 +157,7 @@ fun ProfileScreen(
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 ProfileMetricPill(
-                    label = "Monthly Fleet",
+                    label = if (isAdmin) "Company Fleet" else "Monthly Fleet",
                     value = "${salesData?.soldVehiclesCount ?: 0} Units"
                 )
                 Divider(
@@ -162,7 +167,7 @@ fun ProfileScreen(
                     color = BorderSubtle
                 )
                 ProfileMetricPill(
-                    label = "Pacing Rate",
+                    label = if (isAdmin) "Growth Rate" else "Pacing Rate",
                     value = "${salesData?.progressPercentage ?: 0f}%"
                 )
                 Divider(
@@ -172,7 +177,7 @@ fun ProfileScreen(
                     color = BorderSubtle
                 )
                 ProfileMetricPill(
-                    label = "Fleet Dues",
+                    label = if (isAdmin) "Total Dues" else "Fleet Dues",
                     value = "BDT ${numberFormatShort(salesData?.totalDueAmount ?: 0.0)}"
                 )
             }
@@ -211,7 +216,7 @@ fun ProfileScreen(
                 ProfileInfoRow(
                     icon = Icons.Outlined.Email,
                     title = "Work Email",
-                    value = user?.email ?: "fahim@mtrack.com.bd"
+                    value = user?.email ?: "support@mtrack.com.bd"
                 )
 
                 HorizontalDivider(color = BorderSubtle)
@@ -219,7 +224,7 @@ fun ProfileScreen(
                 ProfileInfoRow(
                     icon = Icons.Outlined.LocationOn,
                     title = "Base Station",
-                    value = "Dhaka Central HQ • Banani"
+                    value = user?.address?.ifBlank { null } ?: "Dhaka, Bangladesh"
                 )
             }
         }

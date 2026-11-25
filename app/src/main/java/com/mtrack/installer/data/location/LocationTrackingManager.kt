@@ -48,7 +48,7 @@ class LocationTrackingManager(private val context: Context) : LocationListener {
     companion object {
         private const val TAG = "MTrackLocation"
         private const val MIN_TIME_INTERVAL_MS = 30000L // 30 seconds
-        private const val MIN_DISTANCE_METERS = 15.0f   // 15 meters
+        private const val MIN_DISTANCE_METERS = 0.0f   // 0 meters to ensure steady periodic updates even when stationary
     }
 
     /**
@@ -106,7 +106,8 @@ class LocationTrackingManager(private val context: Context) : LocationListener {
             val bestLocation = lastGps ?: lastNet
 
             if (bestLocation != null) {
-                onLocationChanged(bestLocation)
+                _lastLocation.value = bestLocation
+                uploadLocationToServer(bestLocation)
             }
 
             _isTrackingActive.value = true
@@ -150,6 +151,8 @@ class LocationTrackingManager(private val context: Context) : LocationListener {
     private fun uploadLocationToServer(location: Location) {
         val token = sessionManager.getAuthToken() ?: return
         val bearerToken = if (token.startsWith("Bearer ", ignoreCase = true)) token else "Bearer $token"
+        val currentUser = sessionManager.getUser()
+        val userId = currentUser?.userId
 
         val isMocked = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             location.isMock
@@ -159,12 +162,17 @@ class LocationTrackingManager(private val context: Context) : LocationListener {
         }
 
         val request = LocationUpdateRequest(
+            userId = userId,
+            staffId = userId,
             latitude = location.latitude,
             longitude = location.longitude,
+            lat = location.latitude,
+            lng = location.longitude,
             accuracy = location.accuracy,
             speed = if (location.hasSpeed()) location.speed else 0.0f,
             altitude = if (location.hasAltitude()) location.altitude else 0.0,
             batteryLevel = _batteryPercentage.value,
+            battery = _batteryPercentage.value,
             isCharging = isDeviceCharging(),
             isMocked = isMocked,
             provider = location.provider ?: "fused"
@@ -172,11 +180,28 @@ class LocationTrackingManager(private val context: Context) : LocationListener {
 
         scope.launch {
             try {
-                val response = RetrofitClient.apiService.updateStaffLocation(bearerToken, request)
+                // Primary: Try ERP staff-tracking endpoint
+                val response = RetrofitClient.apiService.recordStaffTracking(bearerToken, request)
                 if (response.isSuccessful) {
-                    Log.d(TAG, "Location successfully synced to M TRACK ERP.")
+                    Log.d(TAG, "Location synced to ERP staff-tracking successfully (code: ${response.code()}).")
+                    return@launch
+                }
+                Log.w(TAG, "staff-tracking returned ${response.code()}, trying staff_tracking fallback...")
+
+                // Fallback 1: Try staff_tracking (underscore)
+                val response2 = RetrofitClient.apiService.recordStaffTrackingUnderscore(bearerToken, request)
+                if (response2.isSuccessful) {
+                    Log.d(TAG, "Location synced to ERP staff_tracking successfully (code: ${response2.code()}).")
+                    return@launch
+                }
+                Log.w(TAG, "staff_tracking returned ${response2.code()}, trying update-location fallback...")
+
+                // Fallback 2: Try update-location
+                val response3 = RetrofitClient.apiService.updateStaffLocation(bearerToken, request)
+                if (response3.isSuccessful) {
+                    Log.d(TAG, "Location synced to ERP update-location successfully (code: ${response3.code()}).")
                 } else {
-                    Log.w(TAG, "Server responded with code: ${response.code()}")
+                    Log.w(TAG, "All location endpoints failed. Last code: ${response3.code()}")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Network failure syncing location to server", e)

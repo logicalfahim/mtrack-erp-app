@@ -46,6 +46,7 @@ fun SellerDashboardScreen(
     val focusManager = LocalFocusManager.current
     val salesData = state.dashboardData?.salesDepartment
     val user = state.userProfile
+    val isAdmin = user?.role?.equals("admin", true) == true
 
     // Tab state: 0 = Sold Fleet, 1 = Receivables Due
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -212,7 +213,7 @@ fun SellerDashboardScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "SALES TARGET PACING",
+                                    text = if (isAdmin) "COMPANY SALES PACING" else "SALES TARGET PACING",
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         color = Color(0xFFDBEAFE),
                                         fontWeight = FontWeight.SemiBold,
@@ -473,7 +474,7 @@ fun SellerDashboardScreen(
                 ) {
                     ModernTabPill(
                         modifier = Modifier.weight(1f),
-                        title = "Sold Fleet",
+                        title = if (isAdmin) "Enterprise Fleet" else "Sold Fleet",
                         count = filteredVehicles.size,
                         isSelected = selectedTab == 0,
                         onClick = {

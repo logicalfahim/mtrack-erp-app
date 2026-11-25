@@ -75,10 +75,12 @@ class MainActivity : ComponentActivity() {
                 var showLocationDisclosureDialog by remember { mutableStateOf(false) }
 
                 val isTrackingActive by locationTrackingManager.isTrackingActive.collectAsState()
+                val isAdmin = authState.currentUser?.role?.equals("admin", true) == true
 
-                // Check permissions when authenticated
-                LaunchedEffect(authState.isAuthenticated) {
+                // Check permissions & synchronize dashboard state when authenticated user changes
+                LaunchedEffect(authState.isAuthenticated, authState.currentUser?.userId) {
                     if (authState.isAuthenticated) {
+                        dashboardViewModel.onUserLoggedIn(authState.currentUser)
                         if (locationTrackingManager.hasLocationPermissions()) {
                             StaffLocationForegroundService.startService(this@MainActivity)
                             locationTrackingManager.startTracking()
@@ -86,6 +88,7 @@ class MainActivity : ComponentActivity() {
                             showLocationDisclosureDialog = true
                         }
                     } else {
+                        dashboardViewModel.clearSession()
                         StaffLocationForegroundService.stopService(this@MainActivity)
                         locationTrackingManager.stopTracking()
                     }
@@ -112,6 +115,7 @@ class MainActivity : ComponentActivity() {
                                     onLogout = {
                                         StaffLocationForegroundService.stopService(this@MainActivity)
                                         locationTrackingManager.stopTracking()
+                                        dashboardViewModel.clearSession()
                                         authViewModel.logout()
                                     },
                                     onCloseDrawer = {
@@ -146,19 +150,19 @@ class MainActivity : ComponentActivity() {
                                                 }
                                                 Column {
                                                     val headerTitle = when (currentRoute) {
-                                                        "dashboard"    -> "M ERP"
+                                                        "dashboard"    -> if (isAdmin) "M ERP Admin" else "M ERP"
                                                         "staffs"       -> "Staffs Directory"
-                                                        "fleet"        -> "Sold Fleet"
-                                                        "profile"      -> "Executive Profile"
+                                                        "fleet"        -> if (isAdmin) "Enterprise Fleet" else "Sold Fleet"
+                                                        "profile"      -> if (isAdmin) "Administrator Profile" else "Executive Profile"
                                                         "profile_edit" -> "Edit Profile"
                                                         "about_us"     -> "About M TRACK"
                                                         else           -> "Workspace"
                                                     }
                                                     val headerSubtitle = when (currentRoute) {
-                                                        "dashboard"    -> "Sales Operations Hub"
+                                                        "dashboard"    -> if (isAdmin) "Executive Command Center" else "Sales Operations Hub"
                                                         "staffs"       -> "Live Active Colleagues"
-                                                        "fleet"        -> "Deliveries & Dues Pacing"
-                                                        "profile"      -> authState.currentUser?.fullName ?: "Staff Identity"
+                                                        "fleet"        -> if (isAdmin) "Fleet Telematics & Invoices" else "Deliveries & Dues Pacing"
+                                                        "profile"      -> authState.currentUser?.fullName ?: (if (isAdmin) "System Administrator" else "Staff Identity")
                                                         "profile_edit" -> "Personal & Security Details"
                                                         else           -> "Enterprise Fleet Telematics"
                                                     }
@@ -357,6 +361,7 @@ class MainActivity : ComponentActivity() {
                                                 onLogout = {
                                                     StaffLocationForegroundService.stopService(this@MainActivity)
                                                     locationTrackingManager.stopTracking()
+                                                    dashboardViewModel.clearSession()
                                                     authViewModel.logout()
                                                 }
                                             )

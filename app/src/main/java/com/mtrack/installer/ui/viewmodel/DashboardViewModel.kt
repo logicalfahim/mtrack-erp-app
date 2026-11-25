@@ -37,9 +37,34 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         loadDashboard()
     }
 
+    fun onUserLoggedIn(newUser: UserProfile?) {
+        val user = newUser ?: sessionManager.getUser()
+        _uiState.update {
+            it.copy(
+                userProfile = user,
+                dashboardData = null,
+                isLoading = true,
+                errorMessage = null
+            )
+        }
+        loadDashboard()
+    }
+
+    fun clearSession() {
+        _uiState.value = DashboardUiState()
+    }
+
     fun loadDashboard(month: String? = null) {
-        val token = sessionManager.getToken() ?: return
-        _uiState.update { it.copy(isLoading = true, errorMessage = null, selectedMonth = month ?: "") }
+        val token = sessionManager.getToken() ?: sessionManager.getAuthToken() ?: return
+        val currentUser = sessionManager.getUser()
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                errorMessage = null,
+                userProfile = currentUser ?: it.userProfile,
+                selectedMonth = month ?: ""
+            )
+        }
 
         viewModelScope.launch {
             val result = repository.getDashboard(token, month)
@@ -48,7 +73,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            userProfile = res.user ?: it.userProfile,
+                            userProfile = res.user ?: currentUser ?: it.userProfile,
                             dashboardData = res.data,
                             errorMessage = null
                         )

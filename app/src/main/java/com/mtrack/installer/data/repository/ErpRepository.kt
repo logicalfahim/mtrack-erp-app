@@ -64,7 +64,36 @@ class ErpRepository(
                 val authHeader = if (token.startsWith("Bearer ")) token else "Bearer $token"
                 val response = api.getErpDashboard(authHeader, month)
                 if (response.isSuccessful && response.body() != null) {
-                    Result.success(response.body()!!)
+                    var dashResponse = response.body()!!
+                    var currentData = dashResponse.data ?: com.mtrack.installer.data.model.ErpDashboardData()
+
+                    // Fallback for Staff Directory if empty in main response
+                    if (currentData.staffDirectory.isEmpty()) {
+                        try {
+                            val staffResp = api.getStaffDirectory(authHeader)
+                            if (staffResp.isSuccessful && !staffResp.body()?.data.isNullOrEmpty()) {
+                                currentData = currentData.copy(staffDirectory = staffResp.body()!!.data!!)
+                            } else {
+                                val altStaff = api.getStaffs(authHeader)
+                                if (altStaff.isSuccessful && !altStaff.body()?.data.isNullOrEmpty()) {
+                                    currentData = currentData.copy(staffDirectory = altStaff.body()!!.data!!)
+                                }
+                            }
+                        } catch (_: Exception) {}
+                    }
+
+                    // Fallback for Sales Department if missing in main response
+                    if (currentData.salesDepartment == null) {
+                        try {
+                            val salesResp = api.getSales(authHeader, month)
+                            if (salesResp.isSuccessful && salesResp.body()?.data != null) {
+                                currentData = currentData.copy(salesDepartment = salesResp.body()!!.data)
+                            }
+                        } catch (_: Exception) {}
+                    }
+
+                    dashResponse = dashResponse.copy(data = currentData)
+                    Result.success(dashResponse)
                 } else {
                     val errText = response.errorBody()?.string() ?: "Failed to fetch dashboard (Code: ${response.code()})"
                     Result.failure(Exception(errText))

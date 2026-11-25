@@ -23,40 +23,40 @@ data class LoginRequest(
  * Logged-in User Profile Information
  */
 data class UserProfile(
-    @SerializedName("user_id")
-    val userId: Int,
+    @SerializedName("user_id", alternate = ["id", "staff_id", "uid"])
+    val userId: Int = 0,
 
-    @SerializedName("username")
-    val username: String,
+    @SerializedName("username", alternate = ["user_name", "login"])
+    val username: String = "",
 
-    @SerializedName("full_name")
-    val fullName: String,
+    @SerializedName("full_name", alternate = ["name", "staff_name", "employee_name"])
+    val fullName: String = "",
 
-    @SerializedName("email")
+    @SerializedName("email", alternate = ["email_address", "work_email"])
     val email: String? = null,
 
-    @SerializedName("phone")
+    @SerializedName("phone", alternate = ["mobile", "contact", "contact_number", "phone_number"])
     val phone: String? = null,
 
-    @SerializedName("role")
-    val role: String,
+    @SerializedName("role", alternate = ["user_role", "type"])
+    val role: String = "Seller",
 
-    @SerializedName("designation")
+    @SerializedName("designation", alternate = ["position", "job_title", "title"])
     val designation: String? = "Staff",
 
-    @SerializedName("department")
+    @SerializedName("department", alternate = ["dept", "division"])
     val department: String? = "General",
 
-    @SerializedName("profile_picture")
+    @SerializedName("profile_picture", alternate = ["avatar", "image", "photo"])
     val profilePicture: String? = null,
 
-    @SerializedName("profile_picture_url")
+    @SerializedName("profile_picture_url", alternate = ["avatar_url", "image_url", "photo_url"])
     val profilePictureUrl: String? = null,
 
-    @SerializedName("blood_group")
+    @SerializedName("blood_group", alternate = ["blood", "blood_grp"])
     val bloodGroup: String? = null,
 
-    @SerializedName("address")
+    @SerializedName("address", alternate = ["location", "present_address", "base_station", "office_address", "city"])
     val address: String? = null
 )
 
@@ -65,18 +65,18 @@ data class UserProfile(
  */
 data class LoginResponse(
     @SerializedName("status")
-    val status: String,
+    val status: String? = "success",
 
     @SerializedName("code")
-    val code: Int,
+    val code: Int = 200,
 
     @SerializedName("message")
     val message: String? = null,
 
-    @SerializedName("token")
+    @SerializedName("token", alternate = ["access_token", "auth_token"])
     val token: String? = null,
 
-    @SerializedName("user")
+    @SerializedName("user", alternate = ["profile", "staff", "current_user"])
     val user: UserProfile? = null
 )
 
@@ -84,40 +84,40 @@ data class LoginResponse(
  * Sold Vehicle Item in Seller's Fleet
  */
 data class SoldVehicleItem(
-    @SerializedName("id")
-    val id: Int,
+    @SerializedName("id", alternate = ["vehicle_id"])
+    val id: Int = 0,
 
-    @SerializedName("vehicle_plate_number")
-    val vehiclePlateNumber: String,
+    @SerializedName("vehicle_plate_number", alternate = ["plate_number", "registration_number", "reg_no", "plate_no", "vehicle_number"])
+    val vehiclePlateNumber: String = "",
 
-    @SerializedName("vehicle_name")
+    @SerializedName("vehicle_name", alternate = ["name", "model", "vehicle_model"])
     val vehicleName: String? = null,
 
-    @SerializedName("device_type")
+    @SerializedName("device_type", alternate = ["device", "tracker_type"])
     val deviceType: String? = "Voice",
 
-    @SerializedName("device_price")
+    @SerializedName("device_price", alternate = ["price", "amount", "unit_price"])
     val devicePrice: Double? = 0.0,
 
-    @SerializedName("installation_date")
+    @SerializedName("installation_date", alternate = ["install_date", "date", "created_at"])
     val installationDate: String? = null,
 
-    @SerializedName("status")
+    @SerializedName("status", alternate = ["install_status", "device_status"])
     val status: String? = "Active",
 
-    @SerializedName("customer_name")
+    @SerializedName("customer_name", alternate = ["client_name", "customer", "client"])
     val customerName: String? = null,
 
-    @SerializedName("customer_phone")
+    @SerializedName("customer_phone", alternate = ["client_phone", "phone", "contact_number", "contact"])
     val customerPhone: String? = null,
 
-    @SerializedName("due_amount")
+    @SerializedName("due_amount", alternate = ["due", "balance", "remaining_amount"])
     val dueAmount: Double = 0.0,
 
-    @SerializedName("due_invoice_no")
+    @SerializedName("due_invoice_no", alternate = ["invoice_no", "invoice_number"])
     val dueInvoiceNo: String? = null,
 
-    @SerializedName("is_due")
+    @SerializedName("is_due", alternate = ["has_due"])
     val isDue: Boolean = false
 )
 
@@ -125,90 +125,90 @@ data class SoldVehicleItem(
  * Client Due Record with Contact Information
  */
 data class ClientDueItem(
-    @SerializedName("invoice_id")
-    val invoiceId: Int,
+    @SerializedName("invoice_id", alternate = ["id"])
+    val invoiceId: Int = 0,
 
-    @SerializedName("invoice_no")
-    val invoiceNo: String,
+    @SerializedName("invoice_no", alternate = ["invoice_number", "bill_no"])
+    val invoiceNo: String = "",
 
-    @SerializedName("grand_total")
-    val grandTotal: Double,
+    @SerializedName("grand_total", alternate = ["total", "total_amount", "bill_amount"])
+    val grandTotal: Double = 0.0,
 
-    @SerializedName("paid_amount")
-    val paidAmount: Double,
+    @SerializedName("paid_amount", alternate = ["paid", "received_amount"])
+    val paidAmount: Double = 0.0,
 
-    @SerializedName("due_amount")
-    val dueAmount: Double,
+    @SerializedName("due_amount", alternate = ["due", "balance", "remaining_due"])
+    val dueAmount: Double = 0.0,
 
-    @SerializedName("payment_status")
+    @SerializedName("payment_status", alternate = ["status"])
     val paymentStatus: String? = null,
 
-    @SerializedName("invoice_date")
+    @SerializedName("invoice_date", alternate = ["date", "created_at"])
     val invoiceDate: String? = null,
 
-    @SerializedName("vehicle_plate_number")
+    @SerializedName("vehicle_plate_number", alternate = ["plate_number", "registration_number", "reg_no", "plate_no"])
     val vehiclePlateNumber: String? = null,
 
-    @SerializedName("vehicle_name")
+    @SerializedName("vehicle_name", alternate = ["name", "vehicle_model"])
     val vehicleName: String? = null,
 
-    @SerializedName("customer_name")
+    @SerializedName("customer_name", alternate = ["client_name", "customer"])
     val customerName: String? = null,
 
-    @SerializedName("customer_phone")
+    @SerializedName("customer_phone", alternate = ["client_phone", "phone", "contact_number"])
     val customerPhone: String? = null,
 
-    @SerializedName("due_invoice_no")
+    @SerializedName("due_invoice_no", alternate = ["invoice_no"])
     val dueInvoiceNo: String? = null,
 
     @SerializedName("is_due")
-    val isDue: Boolean = false
+    val isDue: Boolean = true
 )
 
 /**
  * Seller / Sales Department Performance Metrics
  */
 data class SellerDashboardMetrics(
-    @SerializedName("month")
-    val month: String,
+    @SerializedName("month", alternate = ["current_month", "period", "date"])
+    val month: String = "",
 
-    @SerializedName("month_name")
-    val monthName: String,
+    @SerializedName("month_name", alternate = ["month_label", "name"])
+    val monthName: String = "",
 
-    @SerializedName("target_qty")
-    val targetQty: Int,
+    @SerializedName("target_qty", alternate = ["target", "sales_target", "monthly_target"])
+    val targetQty: Int = 0,
 
-    @SerializedName("achieved_qty")
-    val achievedQty: Int,
+    @SerializedName("achieved_qty", alternate = ["achieved", "sales_achieved", "sold_count", "total_sold", "sold_vehicles_count"])
+    val achievedQty: Int = 0,
 
-    @SerializedName("last_month_achieved")
+    @SerializedName("last_month_achieved", alternate = ["last_month_achieved_qty", "prev_month_achieved"])
     val lastMonthAchieved: Int = 0,
 
-    @SerializedName("growth_rate")
+    @SerializedName("growth_rate", alternate = ["growth", "growth_percentage"])
     val growthRate: Float = 0f,
 
-    @SerializedName("progress_percentage")
-    val progressPercentage: Float,
+    @SerializedName("progress_percentage", alternate = ["progress", "achievement_rate", "rate", "completion_rate"])
+    val progressPercentage: Float = 0f,
 
-    @SerializedName("total_due_amount")
-    val totalDueAmount: Double,
+    @SerializedName("total_due_amount", alternate = ["due_amount", "total_dues", "dues", "outstanding_amount", "total_due"])
+    val totalDueAmount: Double = 0.0,
 
-    @SerializedName("earned_commission")
-    val earnedCommission: Double,
+    @SerializedName("earned_commission", alternate = ["commission", "incentive", "bonus"])
+    val earnedCommission: Double = 0.0,
 
-    @SerializedName("company_total_sales")
-    val companyTotalSales: Int,
+    @SerializedName("company_total_sales", alternate = ["company_sales", "total_sales", "overall_sales"])
+    val companyTotalSales: Int = 0,
 
-    @SerializedName("sold_vehicles_count")
-    val soldVehiclesCount: Int,
+    @SerializedName("sold_vehicles_count", alternate = ["vehicles_count", "sold_count", "total_vehicles"])
+    val soldVehiclesCount: Int = 0,
 
-    @SerializedName("sold_vehicles_list")
+    @SerializedName("sold_vehicles_list", alternate = ["sold_vehicles", "vehicles", "sales", "fleet", "sold_list"])
     val soldVehiclesList: List<SoldVehicleItem> = emptyList(),
 
-    @SerializedName("client_dues_count")
+    @SerializedName("client_dues_count", alternate = ["dues_count", "due_count", "total_client_dues"])
     val clientDuesCount: Int = 0,
 
-    @SerializedName("client_dues_list")
+    @SerializedName("client_dues_list", alternate = ["client_dues", "dues", "due_invoices", "invoices"])
     val clientDuesList: List<ClientDueItem> = emptyList()
 )
 
@@ -216,74 +216,74 @@ data class SellerDashboardMetrics(
  * Technical / Installation Operations Metrics
  */
 data class TechnicalMetrics(
-    @SerializedName("pending_installations")
-    val pendingInstallations: Int,
+    @SerializedName("pending_installations", alternate = ["pending", "pending_jobs"])
+    val pendingInstallations: Int = 0,
 
-    @SerializedName("completed_installations")
-    val completedInstallations: Int
+    @SerializedName("completed_installations", alternate = ["completed", "completed_jobs"])
+    val completedInstallations: Int = 0
 )
 
 /**
  * Overall Company 360 Telematics Overview
  */
 data class CompanyOverview(
-    @SerializedName("total_fleet_size")
-    val totalFleetSize: Int,
+    @SerializedName("total_fleet_size", alternate = ["fleet_size", "total_fleet"])
+    val totalFleetSize: Int = 0,
 
-    @SerializedName("this_month_sales")
-    val thisMonthSales: Int,
+    @SerializedName("this_month_sales", alternate = ["monthly_sales", "sales_this_month"])
+    val thisMonthSales: Int = 0,
 
-    @SerializedName("active_vehicles")
-    val activeVehicles: Int,
+    @SerializedName("active_vehicles", alternate = ["active_fleet", "online_vehicles"])
+    val activeVehicles: Int = 0,
 
-    @SerializedName("total_clients")
-    val totalClients: Int
+    @SerializedName("total_clients", alternate = ["clients", "total_customers", "customers"])
+    val totalClients: Int = 0
 )
 
 /**
  * Staff Directory Member Item with Live Active Status, Blood Group, Address and Contact
  */
 data class StaffMemberItem(
-    @SerializedName("user_id")
-    val userId: Int,
+    @SerializedName("user_id", alternate = ["id", "staff_id", "uid"])
+    val userId: Int = 0,
 
-    @SerializedName("username")
-    val username: String,
+    @SerializedName("username", alternate = ["user_name", "login"])
+    val username: String = "",
 
-    @SerializedName("full_name")
-    val fullName: String,
+    @SerializedName("full_name", alternate = ["name", "staff_name", "employee_name"])
+    val fullName: String = "",
 
-    @SerializedName("phone")
+    @SerializedName("phone", alternate = ["mobile", "contact", "contact_number", "phone_number"])
     val phone: String? = null,
 
-    @SerializedName("email")
+    @SerializedName("email", alternate = ["email_address", "work_email"])
     val email: String? = null,
 
-    @SerializedName("blood_group")
+    @SerializedName("blood_group", alternate = ["blood", "blood_grp"])
     val bloodGroup: String? = null,
 
-    @SerializedName("address")
+    @SerializedName("address", alternate = ["location", "present_address", "base_station", "city"])
     val address: String? = null,
 
-    @SerializedName("role")
+    @SerializedName("role", alternate = ["user_role", "type"])
     val role: String? = "Staff",
 
-    @SerializedName("designation")
+    @SerializedName("designation", alternate = ["position", "job_title", "title"])
     val designation: String? = "Staff",
 
-    @SerializedName("department")
+    @SerializedName("department", alternate = ["dept", "division"])
     val department: String? = "General",
 
-    @SerializedName("profile_picture_url")
+    @SerializedName("profile_picture_url", alternate = ["avatar", "image", "photo", "profile_picture", "picture"])
     val profilePictureUrl: String? = null,
 
-    @SerializedName("last_active_at")
+    @SerializedName("last_active_at", alternate = ["last_seen", "last_location_at", "updated_at"])
     val lastActiveAt: String? = null,
 
-    @SerializedName("active_recency_text")
+    @SerializedName("active_recency_text", alternate = ["recency", "status_text"])
     val activeRecencyText: String? = "Offline",
 
-    @SerializedName("is_online")
+    @SerializedName("is_online", alternate = ["online", "active"])
     val isOnline: Boolean = false
 )
 
@@ -291,16 +291,16 @@ data class StaffMemberItem(
  * Consolidated ERP Dashboard Data Container
  */
 data class ErpDashboardData(
-    @SerializedName("sales_department")
+    @SerializedName("sales_department", alternate = ["sales", "sales_data", "seller_dashboard", "admin_dashboard", "sales_overview", "department_sales", "seller"])
     val salesDepartment: SellerDashboardMetrics? = null,
 
-    @SerializedName("technical_department")
+    @SerializedName("technical_department", alternate = ["technical", "tech_department", "installations"])
     val technicalDepartment: TechnicalMetrics? = null,
 
-    @SerializedName("company_overview")
+    @SerializedName("company_overview", alternate = ["company", "overview", "business_overview"])
     val companyOverview: CompanyOverview? = null,
 
-    @SerializedName("staff_directory")
+    @SerializedName("staff_directory", alternate = ["staff_list", "staffs", "employees", "staff", "users", "colleagues", "staff_members"])
     val staffDirectory: List<StaffMemberItem> = emptyList()
 )
 
@@ -309,15 +309,18 @@ data class ErpDashboardData(
  */
 data class DashboardResponse(
     @SerializedName("status")
-    val status: String,
+    val status: String? = "success",
 
     @SerializedName("code")
-    val code: Int,
+    val code: Int = 200,
 
-    @SerializedName("user")
+    @SerializedName("message")
+    val message: String? = null,
+
+    @SerializedName("user", alternate = ["profile", "staff", "current_user"])
     val user: UserProfile? = null,
 
-    @SerializedName("data")
+    @SerializedName("data", alternate = ["dashboard", "result", "payload"])
     val data: ErpDashboardData? = null
 )
 
@@ -328,11 +331,20 @@ data class LocationUpdateRequest(
     @SerializedName("user_id")
     val userId: Int? = null,
 
+    @SerializedName("staff_id")
+    val staffId: Int? = userId,
+
     @SerializedName("latitude")
     val latitude: Double,
 
     @SerializedName("longitude")
     val longitude: Double,
+
+    @SerializedName("lat")
+    val lat: Double = latitude,
+
+    @SerializedName("lng")
+    val lng: Double = longitude,
 
     @SerializedName("accuracy")
     val accuracy: Float = 0.0f,
@@ -346,6 +358,9 @@ data class LocationUpdateRequest(
     @SerializedName("battery_level")
     val batteryLevel: Int = 0,
 
+    @SerializedName("battery")
+    val battery: Int = batteryLevel,
+
     @SerializedName("is_charging")
     val isCharging: Boolean = false,
 
@@ -358,10 +373,10 @@ data class LocationUpdateRequest(
 
 data class LocationUpdateResponse(
     @SerializedName("status")
-    val status: String,
+    val status: String? = "success",
 
     @SerializedName("code")
-    val code: Int,
+    val code: Int = 200,
 
     @SerializedName("message")
     val message: String? = null

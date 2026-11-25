@@ -55,6 +55,8 @@ fun AppDrawer(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
+            val isAdmin = currentUser?.role?.equals("admin", true) == true
+
             // 1. Top Brand Header
             Box(
                 modifier = Modifier
@@ -92,7 +94,7 @@ fun AppDrawer(
                                 )
                             )
                             Text(
-                                text = "Sales Operations Portal",
+                                text = if (isAdmin) "Executive Administration Portal" else "Sales Operations Portal",
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     color = CardBackground.copy(alpha = 0.85f),
                                     fontSize = 10.5.sp
@@ -165,7 +167,7 @@ fun AppDrawer(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    val initials = (currentUser?.fullName ?: "Fahim Ahmed").split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
+                    val initials = (currentUser?.fullName ?: (if (isAdmin) "Admin" else "Fahim Ahmed")).split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
                     Box(
                         modifier = Modifier
                             .size(40.dp)
@@ -174,7 +176,7 @@ fun AppDrawer(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = initials.ifEmpty { "FA" },
+                            text = initials.ifEmpty { if (isAdmin) "AD" else "FA" },
                             style = MaterialTheme.typography.titleMedium.copy(
                                 color = BrandBluePrimary,
                                 fontWeight = FontWeight.Bold
@@ -184,14 +186,14 @@ fun AppDrawer(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = currentUser?.fullName ?: "Fahim Ahmed",
+                            text = currentUser?.fullName ?: (if (isAdmin) "System Administrator" else "Fahim Ahmed"),
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = TextPrimary
                             )
                         )
                         Text(
-                            text = "${currentUser?.designation ?: "Sales & Marketing"} • ${currentUser?.department ?: "Sales"}",
+                            text = if (isAdmin) "System Administrator • Management" else "${currentUser?.designation ?: "Sales & Marketing"} • ${currentUser?.department ?: "Sales"}",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = TextSecondary,
                                 fontSize = 10.5.sp
@@ -229,7 +231,7 @@ fun AppDrawer(
                 )
 
                 DrawerMenuItem(
-                    title = "Sales Dashboard",
+                    title = if (isAdmin) "Executive Dashboard" else "Sales Dashboard",
                     icon = Icons.Outlined.Dashboard,
                     isSelected = currentRoute == "dashboard",
                     onClick = {
@@ -249,7 +251,7 @@ fun AppDrawer(
                 )
 
                 DrawerMenuItem(
-                    title = "Sold Fleet Portfolio",
+                    title = if (isAdmin) "Enterprise Fleet & Dues" else "Sold Fleet Portfolio",
                     icon = Icons.Outlined.DirectionsCar,
                     isSelected = currentRoute == "fleet",
                     onClick = {
@@ -259,7 +261,7 @@ fun AppDrawer(
                 )
 
                 DrawerMenuItem(
-                    title = "Executive Profile",
+                    title = if (isAdmin) "Administrator Profile" else "Executive Profile",
                     icon = Icons.Outlined.Person,
                     isSelected = currentRoute == "profile" || currentRoute == "profile_edit",
                     onClick = {

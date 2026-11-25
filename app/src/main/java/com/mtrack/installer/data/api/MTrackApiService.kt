@@ -39,11 +39,51 @@ interface MTrackApiService {
     /**
      * Synchronize live staff GPS coordinates & device battery telematics
      */
+    @POST("api/v1/staff-tracking")
+    suspend fun recordStaffTracking(
+        @Header("Authorization") bearerToken: String,
+        @Body request: LocationUpdateRequest
+    ): Response<LocationUpdateResponse>
+
+    @POST("api/v1/staff_tracking")
+    suspend fun recordStaffTrackingUnderscore(
+        @Header("Authorization") bearerToken: String,
+        @Body request: LocationUpdateRequest
+    ): Response<LocationUpdateResponse>
+
     @POST("api/v1/update-location")
     suspend fun updateStaffLocation(
         @Header("Authorization") bearerToken: String,
         @Body request: LocationUpdateRequest
     ): Response<LocationUpdateResponse>
+
+    @POST("api/v1/staff-location")
+    suspend fun recordStaffLocation(
+        @Header("Authorization") bearerToken: String,
+        @Body request: LocationUpdateRequest
+    ): Response<LocationUpdateResponse>
+
+    /**
+     * Staff Directory fallback endpoint
+     */
+    @GET("api/v1/staffs")
+    suspend fun getStaffs(
+        @Header("Authorization") bearerToken: String
+    ): Response<ApiResponse<List<StaffMemberItem>>>
+
+    @GET("api/v1/staff-directory")
+    suspend fun getStaffDirectory(
+        @Header("Authorization") bearerToken: String
+    ): Response<ApiResponse<List<StaffMemberItem>>>
+
+    /**
+     * Sales metrics fallback endpoint
+     */
+    @GET("api/v1/sales")
+    suspend fun getSales(
+        @Header("Authorization") bearerToken: String,
+        @Query("month") month: String? = null
+    ): Response<ApiResponse<SellerDashboardMetrics>>
 
     /**
      * Track status of requests by contact number
