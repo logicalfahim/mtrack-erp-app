@@ -32,15 +32,17 @@ jobs:
 
       - name: 🛠️ Build Debug APK
         run: |
-          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build_output.log
+          ./gradlew :app:assembleDebug --stacktrace > build_output.log 2>&1 || true
 
-      - name: 📝 Show Build Log on Failure
-        if: failure()
+      - name: 📝 Post Build Diagnostics
         run: |
-          echo "### ⚠️ Build Failure Diagnostics" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Build Log (Last 100 lines)" >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
-          tail -n 80 build_output.log >> $GITHUB_STEP_SUMMARY
+          tail -n 100 build_output.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          gh api repos/${{ github.repository }}/commits/${{ github.sha }}/comments -f body="$(tail -n 60 build_output.log)" || true
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: 🔍 Locate Generated APK
         run: |
