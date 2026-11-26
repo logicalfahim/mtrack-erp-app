@@ -456,6 +456,48 @@ private fun FleetWithDueCardItem(
                     }
                 }
             }
+
+            // Hardware Price & Monthly Bill Pills
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    color = BrandBlueLight.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Device: BDT ${vehicle.devicePrice?.toInt() ?: 0}",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = BrandBluePrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 10.5.sp
+                        )
+                    )
+                }
+
+                val bill = vehicle.monthlyBill ?: 0.0
+                if (bill > 0.0) {
+                    Surface(
+                        color = EmeraldBg.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "Bill: BDT ${bill.toInt()}/mo",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.5.dp),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = EmeraldSuccess,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 10.5.sp
+                            )
+                        )
+                    }
+                }
+            }
         }
     }
 }

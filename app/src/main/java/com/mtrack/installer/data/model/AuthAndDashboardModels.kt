@@ -114,6 +114,9 @@ data class SoldVehicleItem(
     @SerializedName("device_price", alternate = ["price", "amount", "unit_price"])
     val devicePrice: Double? = 0.0,
 
+    @SerializedName("monthly_bill", alternate = ["bill", "monthly_service_charge", "service_charge", "monthly_charge", "monthly_fee"])
+    val monthlyBill: Double? = 0.0,
+
     @SerializedName("installation_date", alternate = ["install_date", "date", "created_at"])
     val installationDate: String? = null,
 
@@ -216,6 +219,15 @@ data class SellerDashboardMetrics(
 
     @SerializedName("earned_commission", alternate = ["commission", "incentive", "bonus"])
     val earnedCommission: Double = 0.0,
+
+    @SerializedName("lifetime_installed", alternate = ["lifetime_vehicles", "total_installed", "executive_lifetime"])
+    val lifetimeInstalled: Int = 0,
+
+    @SerializedName("hardware_value", alternate = ["total_hardware_value", "device_value"])
+    val hardwareValue: Double = 0.0,
+
+    @SerializedName("mrr", alternate = ["monthly_recurring_revenue", "monthly_bill_total"])
+    val mrr: Double = 0.0,
 
     @SerializedName("company_total_sales", alternate = ["company_sales", "total_sales", "overall_sales"])
     val companyTotalSales: Int = 0,

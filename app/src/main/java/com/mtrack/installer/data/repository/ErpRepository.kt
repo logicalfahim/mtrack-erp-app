@@ -7,6 +7,8 @@ import com.mtrack.installer.data.api.RetrofitClient
 import com.mtrack.installer.data.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.*
 
 class ErpRepository(
     private val api: MTrackApiService = RetrofitClient.apiService
@@ -85,6 +87,11 @@ class ErpRepository(
                     if (realStaff.isNotEmpty()) {
                         currentData = currentData.copy(staffDirectory = realStaff)
                     }
+                }
+
+                // 2b. Enrich staff directory with 1-minute real-time active online calculation
+                if (currentData.staffDirectory.isNotEmpty()) {
+                    currentData = currentData.copy(staffDirectory = enrichStaffOnlineStatus(currentData.staffDirectory))
                 }
 
                 // 3. Fallback for Sales / Fleet Department (works WITH or WITHOUT login via /api/v1/install-requests)
@@ -274,34 +281,108 @@ class ErpRepository(
 
     private fun parseStaffList(json: JsonElement): List<StaffMemberItem> {
         val listType = object : TypeToken<List<StaffMemberItem>>() {}.type
-        return try {
+        val rawList: List<StaffMemberItem> = try {
             when {
                 json.isJsonArray -> {
                     gson.fromJson(json.asJsonArray, listType) ?: emptyList()
                 }
                 json.isJsonObject -> {
                     val obj = json.asJsonObject
+                    var found: List<StaffMemberItem>? = null
                     val keysToCheck = listOf("data", "users", "staffs", "staff", "employees", "staff_directory", "results")
                     for (key in keysToCheck) {
                         if (obj.has(key) && !obj.get(key).isJsonNull) {
                             val child = obj.get(key)
                             if (child.isJsonArray) {
                                 val parsed: List<StaffMemberItem>? = gson.fromJson(child.asJsonArray, listType)
-                                if (!parsed.isNullOrEmpty()) return parsed
+                                if (!parsed.isNullOrEmpty()) {
+                                    found = parsed
+                                    break
+                                }
                             } else if (child.isJsonObject && child.asJsonObject.has("data") && child.asJsonObject.get("data").isJsonArray) {
-                                // Nested Laravel pagination: { "data": { "data": [...] } }
                                 val nestedArray = child.asJsonObject.get("data").asJsonArray
                                 val parsed: List<StaffMemberItem>? = gson.fromJson(nestedArray, listType)
-                                if (!parsed.isNullOrEmpty()) return parsed
+                                if (!parsed.isNullOrEmpty()) {
+                                    found = parsed
+                                    break
+                                }
                             }
                         }
                     }
-                    emptyList()
+                    found ?: emptyList()
                 }
                 else -> emptyList()
             }
         } catch (ignored: Exception) {
             emptyList()
+        }
+        return if (rawList.isNotEmpty()) enrichStaffOnlineStatus(rawList) else emptyList()
+    }
+
+    /**
+     * Enriches staff members with real-time online status and human-readable recency
+     * Threshold: Active within 1 minute (<= 60 seconds) = Online Now.
+     */
+    private fun enrichStaffOnlineStatus(items: List<StaffMemberItem>): List<StaffMemberItem> {
+        val now = System.currentTimeMillis()
+        val formats = listOf(
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        )
+
+        return items.map { staff ->
+            val timestampStr = staff.lastActiveAt?.trim()
+            if (timestampStr.isNullOrEmpty()) {
+                staff.copy(
+                    isOnline = false,
+                    activeRecencyText = "Offline"
+                )
+            } else {
+                var parsedTime: Long? = null
+                for (fmt in formats) {
+                    try {
+                        val parsed = fmt.parse(timestampStr)
+                        if (parsed != null) {
+                            parsedTime = parsed.time
+                            break
+                        }
+                    } catch (ignored: Exception) {}
+                }
+
+                if (parsedTime != null) {
+                    val diff = now - parsedTime
+                    // 1 minute active threshold: within the last 60 seconds (with 15s future clock skew allowance)
+                    val isOnline = diff in -15_000L..60_000L
+                    val recencyText = when {
+                        isOnline -> "Online Now"
+                        diff < 3_600_000L -> {
+                            val mins = (diff / 60_000L).coerceAtLeast(1)
+                            "Seen ${mins}m ago"
+                        }
+                        diff < 86_400_000L -> {
+                            val hours = diff / 3_600_000L
+                            "Seen ${hours}h ago"
+                        }
+                        else -> {
+                            val days = diff / 86_400_000L
+                            if (days == 1L) "Seen yesterday" else "Seen ${days}d ago"
+                        }
+                    }
+                    staff.copy(
+                        isOnline = isOnline,
+                        activeRecencyText = recencyText
+                    )
+                } else {
+                    val isOnline = staff.isOnline || timestampStr.contains("online", true) || timestampStr.contains("now", true)
+                    staff.copy(
+                        isOnline = isOnline,
+                        activeRecencyText = if (isOnline) "Online Now" else timestampStr
+                    )
+                }
+            }
         }
     }
 
@@ -334,12 +415,13 @@ class ErpRepository(
         // 1. PRIMARY: Query /api/v1/vehicles only if not already supplied
         if (authHeader != null && allVehicles.isEmpty()) {
             // If logged in as seller, try seller parameter query first
-            if (isSeller && sellerUsername.isNotEmpty()) {
+            if (isSeller) {
                 try {
                     val sVehiclesResp = api.getVehicles(
                         bearerToken = authHeader,
-                        seller = sellerUsername,
-                        refName = sellerUsername,
+                        sellerId = currentUser?.userId?.takeIf { it > 0 },
+                        seller = sellerUsername.ifEmpty { null },
+                        refName = sellerUsername.ifEmpty { null },
                         month = month
                     )
                     if (sVehiclesResp.isSuccessful && sVehiclesResp.body() != null) {
@@ -485,10 +567,20 @@ class ErpRepository(
         val target = existingSales?.targetQty?.takeIf { it > 0 } ?: 20
         val progress = if (target > 0) ((achieved.toFloat() / target.toFloat()) * 100f).coerceIn(0f, 100f) else 0f
 
+        val hardwareVal = if ((existingSales?.hardwareValue ?: 0.0) > 0.0) existingSales!!.hardwareValue
+            else filteredVehicles.sumOf { it.devicePrice ?: 0.0 }
+        val mrrVal = if ((existingSales?.mrr ?: 0.0) > 0.0) existingSales!!.mrr
+            else filteredVehicles.sumOf { it.monthlyBill ?: 0.0 }
+        val lifetime = if ((existingSales?.lifetimeInstalled ?: 0) > 0) existingSales!!.lifetimeInstalled
+            else maxOf(achieved, filteredVehicles.size)
+
         return (existingSales ?: SellerDashboardMetrics()).copy(
             achievedQty = achieved,
             soldVehiclesCount = maxOf(achieved, filteredVehicles.size),
             soldVehiclesList = filteredVehicles,
+            lifetimeInstalled = lifetime,
+            hardwareValue = hardwareVal,
+            mrr = mrrVal,
             clientDuesCount = filteredDues.size,
             clientDuesList = filteredDues,
             totalDueAmount = totalDue,
@@ -733,6 +825,10 @@ class ErpRepository(
 
             val isDue = dueAmount > 0.0 || obj.optBoolean("is_due", false) || status.equals("due", true)
 
+            val monthlyBill = obj.optDouble("monthly_bill", 0.0).takeIf { it > 0 }
+                ?: obj.optDouble("monthly_charge", 0.0).takeIf { it > 0 }
+                ?: obj.optDouble("bill", 0.0)
+
             result.add(
                 SoldVehicleItem(
                     id = if (id > 0) id else (result.size + 1),
@@ -740,6 +836,7 @@ class ErpRepository(
                     vehicleName = model,
                     deviceType = device,
                     devicePrice = price,
+                    monthlyBill = monthlyBill,
                     installationDate = installDate,
                     status = status,
                     customerName = customerName,

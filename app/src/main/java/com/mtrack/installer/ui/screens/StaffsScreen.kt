@@ -72,7 +72,11 @@ fun StaffsScreen(
     ) {
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Screen Title & Staff Count Pill
+        val totalCount = staffList.size
+        val onlineCount = staffList.count { it.isOnline }
+        val offlineCount = totalCount - onlineCount
+
+        // Screen Title & Live Directory Badge
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -80,33 +84,136 @@ fun StaffsScreen(
         ) {
             Column {
                 Text(
-                    text = "Staffs & Colleagues",
+                    text = "Staffs Directory",
                     style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.SemiBold,
                         color = TextPrimary,
                         fontSize = 20.sp
                     )
                 )
                 Text(
-                    text = "${filteredStaffs.size} active colleagues in organization",
+                    text = "Live team telematics & presence",
                     style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontSize = 12.sp)
                 )
             }
 
             Surface(
-                color = BrandBlueLight,
+                color = if (onlineCount > 0) EmeraldBg else BrandBlueLight,
                 shape = RoundedCornerShape(10.dp),
-                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BrandBlueBorder.copy(alpha = 0.5f)))
+                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(if (onlineCount > 0) EmeraldSuccess.copy(alpha = 0.4f) else BrandBlueBorder.copy(alpha = 0.5f)))
             ) {
-                Text(
-                    text = "Live Directory",
+                Row(
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        color = BrandBluePrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 11.sp
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(if (onlineCount > 0) EmeraldSuccess else BrandBluePrimary)
                     )
+                    Text(
+                        text = "$onlineCount Active Now",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = if (onlineCount > 0) EmeraldSuccess else BrandBluePrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp
+                        )
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Top Header Summary Card: Total, Online, Offline
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+            border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Total Staff
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Total Staff",
+                        style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 11.sp)
+                    )
+                    Text(
+                        text = "$totalCount",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = SlateNavyDark,
+                            fontSize = 17.sp
+                        )
+                    )
+                }
+
+                Divider(
+                    modifier = Modifier
+                        .height(28.dp)
+                        .width(1.dp),
+                    color = BorderSubtle
                 )
+
+                // Online Now (1-minute threshold)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(EmeraldSuccess)
+                        )
+                        Text(
+                            text = "Online Now",
+                            style = MaterialTheme.typography.labelSmall.copy(color = EmeraldSuccess, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                        )
+                    }
+                    Text(
+                        text = "$onlineCount Active",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = EmeraldSuccess,
+                            fontSize = 17.sp
+                        )
+                    )
+                }
+
+                Divider(
+                    modifier = Modifier
+                        .height(28.dp)
+                        .width(1.dp),
+                    color = BorderSubtle
+                )
+
+                // Offline
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Offline",
+                        style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 11.sp)
+                    )
+                    Text(
+                        text = "$offlineCount",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextSecondary,
+                            fontSize = 17.sp
+                        )
+                    )
+                }
             }
         }
 
@@ -248,7 +355,7 @@ private fun StaffMemberCardItem(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Row 1: Avatar + Name + Online / Recency Status
+            // Row 1: Avatar with Corner Status Dot + Name/Designation + Recency Status Pill
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -256,23 +363,47 @@ private fun StaffMemberCardItem(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     val initials = staff.fullName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(BrandBlueLight),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = initials.ifEmpty { "ST" },
-                            style = MaterialTheme.typography.labelMedium.copy(color = BrandBluePrimary, fontWeight = FontWeight.Bold)
-                        )
+                    val isOnline = staff.isOnline
+
+                    Box(modifier = Modifier.size(42.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isOnline) BrandBlueLight else SurfaceBackground),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = initials.ifEmpty { "ST" },
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    color = if (isOnline) BrandBluePrimary else TextSecondary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            )
+                        }
+
+                        // Status dot attached to corner
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(CardBackground)
+                                .padding(1.5.dp)
+                                .align(Alignment.BottomEnd)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(if (isOnline) EmeraldSuccess else Color(0xFF94A3B8))
+                            )
+                        }
                     }
 
                     Column {
                         Text(
                             text = staff.fullName,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary)
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, color = TextPrimary)
                         )
                         Text(
                             text = "${staff.designation ?: "Staff"} • ${staff.department ?: "Operations"}",
@@ -281,16 +412,16 @@ private fun StaffMemberCardItem(
                     }
                 }
 
-                // Active Recency Badge (e.g. Active now, 3m ago, Idle 25m, Off 2h)
+                // Active Recency Badge (e.g. Online Now in green, Seen 12m ago, Offline)
                 val isOnline = staff.isOnline
                 val badgeBg = if (isOnline) EmeraldBg else SurfaceBackground
                 val badgeColor = if (isOnline) EmeraldSuccess else TextMuted
-                val dotColor = if (isOnline) EmeraldSuccess else TextMuted
+                val dotColor = if (isOnline) EmeraldSuccess else Color(0xFF94A3B8)
 
                 Surface(
                     color = badgeBg,
                     shape = RoundedCornerShape(12.dp),
-                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(badgeColor.copy(alpha = 0.25f)))
+                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(if (isOnline) EmeraldSuccess.copy(alpha = 0.35f) else BorderSubtle))
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
@@ -299,12 +430,12 @@ private fun StaffMemberCardItem(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(5.dp)
+                                .size(6.dp)
                                 .clip(CircleShape)
                                 .background(dotColor)
                         )
                         Text(
-                            text = staff.activeRecencyText ?: "Offline",
+                            text = staff.activeRecencyText ?: if (isOnline) "Online Now" else "Offline",
                             style = MaterialTheme.typography.labelSmall.copy(
                                 color = badgeColor,
                                 fontWeight = FontWeight.SemiBold,
@@ -394,7 +525,34 @@ private fun StaffMemberCardItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (!staff.phone.isNullOrBlank()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        // SMS Button
+                        OutlinedButton(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("sms:${staff.phone}"))
+                                context.startActivity(intent)
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 5.dp),
+                            modifier = Modifier.height(34.dp),
+                            border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(imageVector = Icons.Outlined.Message, contentDescription = null, tint = BrandBluePrimary, modifier = Modifier.size(13.dp))
+                                Text(
+                                    text = "SMS",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        color = TextPrimary,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.sp
+                                    )
+                                )
+                            }
+                        }
+
                         // WhatsApp Button
                         OutlinedButton(
                             onClick = {
@@ -403,7 +561,7 @@ private fun StaffMemberCardItem(
                                 context.startActivity(intent)
                             },
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 5.dp),
+                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 5.dp),
                             modifier = Modifier.height(34.dp),
                             border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
                         ) {
@@ -431,7 +589,7 @@ private fun StaffMemberCardItem(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = BrandBluePrimary),
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 5.dp),
+                            contentPadding = PaddingValues(horizontal = 11.dp, vertical = 5.dp),
                             modifier = Modifier.height(34.dp)
                         ) {
                             Row(
