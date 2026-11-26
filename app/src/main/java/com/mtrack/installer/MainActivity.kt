@@ -131,55 +131,47 @@ class MainActivity : ComponentActivity() {
                                         title = {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
-                                                Box(
+                                                Image(
+                                                    painter = painterResource(id = R.drawable.app_icon),
+                                                    contentDescription = "M Track Logo",
                                                     modifier = Modifier
-                                                        .size(28.dp)
+                                                        .size(32.dp)
                                                         .clip(RoundedCornerShape(8.dp))
-                                                        .background(CardBackground.copy(alpha = 0.2f)),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = "M",
-                                                        style = MaterialTheme.typography.titleMedium.copy(
-                                                            color = CardBackground,
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 14.sp
-                                                        )
-                                                    )
-                                                }
+                                                )
                                                 Column {
-                                                    val headerTitle = when (currentRoute) {
-                                                        "dashboard"    -> if (isAdmin) "M ERP Admin" else "M ERP"
-                                                        "staffs"       -> "Staffs Directory"
-                                                        "install"      -> "New Installation"
-                                                        "fleet"        -> if (isAdmin) "Enterprise Fleet" else "Sold Fleet"
-                                                        "profile"      -> if (isAdmin) "Administrator Profile" else "Executive Profile"
-                                                        "profile_edit" -> "Edit Profile"
-                                                        "about_us"     -> "About M TRACK"
-                                                        else           -> "Workspace"
-                                                    }
-                                                    val headerSubtitle = when (currentRoute) {
-                                                        "dashboard"    -> if (isAdmin) "Executive Command Center" else "Sales Operations Hub"
-                                                        "staffs"       -> "Live Active Colleagues"
-                                                        "install"      -> "Vehicle Onboarding Form"
-                                                        "fleet"        -> if (isAdmin) "Fleet Telematics & Invoices" else "Deliveries & Dues Pacing"
-                                                        "profile"      -> authState.currentUser?.fullName ?: (if (isAdmin) "System Administrator" else "Staff Identity")
-                                                        "profile_edit" -> "Personal & Security Details"
-                                                        else           -> "Enterprise Fleet Telematics"
-                                                    }
-
-                                                    Text(
-                                                        text = headerTitle,
-                                                        style = MaterialTheme.typography.titleMedium.copy(
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = CardBackground,
-                                                            fontSize = 15.sp
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "M TRACK",
+                                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = CardBackground,
+                                                                fontSize = 15.sp,
+                                                                letterSpacing = 0.8.sp
+                                                            )
                                                         )
-                                                    )
+                                                        Surface(
+                                                            color = CardBackground.copy(alpha = 0.22f),
+                                                            shape = RoundedCornerShape(4.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = "ERP",
+                                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                                    color = CardBackground,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    fontSize = 9.sp,
+                                                                    letterSpacing = 0.5.sp
+                                                                )
+                                                            )
+                                                        }
+                                                    }
                                                     Text(
-                                                        text = headerSubtitle,
+                                                        text = "Enterprise Operations Portal",
                                                         style = MaterialTheme.typography.labelSmall.copy(
                                                             fontWeight = FontWeight.Normal,
                                                             color = CardBackground.copy(alpha = 0.85f),
@@ -190,18 +182,30 @@ class MainActivity : ComponentActivity() {
                                             }
                                         },
                                         navigationIcon = {
-                                            IconButton(
-                                                onClick = {
-                                                    scope.launch {
-                                                        if (drawerState.isClosed) drawerState.open() else drawerState.close()
-                                                    }
+                                            if (currentRoute == "install") {
+                                                IconButton(
+                                                    onClick = { currentRoute = "dashboard" }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                                        contentDescription = "Back to Dashboard",
+                                                        tint = CardBackground
+                                                    )
                                                 }
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Outlined.Menu,
-                                                    contentDescription = "Open Navigation Menu",
-                                                    tint = CardBackground
-                                                )
+                                            } else {
+                                                IconButton(
+                                                    onClick = {
+                                                        scope.launch {
+                                                            if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                                                        }
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.Menu,
+                                                        contentDescription = "Open Navigation Menu",
+                                                        tint = CardBackground
+                                                    )
+                                                }
                                             }
                                         },
                                         actions = {
@@ -287,10 +291,11 @@ class MainActivity : ComponentActivity() {
                                     )
                                 },
                                 bottomBar = {
-                                    NavigationBar(
-                                        containerColor = CardBackground,
-                                        tonalElevation = 2.dp
-                                    ) {
+                                    if (currentRoute != "install") {
+                                        NavigationBar(
+                                            containerColor = CardBackground,
+                                            tonalElevation = 2.dp
+                                        ) {
                                         // 1. Overview
                                         NavigationBarItem(
                                             selected = currentRoute == "dashboard",
@@ -378,6 +383,7 @@ class MainActivity : ComponentActivity() {
                                             )
                                         )
                                     }
+                                    }
                                 }
                             ) { innerPadding ->
                                 Box(
@@ -402,7 +408,8 @@ class MainActivity : ComponentActivity() {
                                             if (installUiState.currentStep == 7) {
                                                 SuccessScreen(
                                                     batchId = installUiState.submittedBatchId ?: "MTK-SUCCESS",
-                                                    viewModel = installViewModel
+                                                    viewModel = installViewModel,
+                                                    onReturnToDashboard = { currentRoute = "dashboard" }
                                                 )
                                             } else {
                                                 InstallWizardScreen(
