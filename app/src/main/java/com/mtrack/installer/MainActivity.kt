@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -20,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -187,7 +189,7 @@ class MainActivity : ComponentActivity() {
                                                     onClick = { currentRoute = "dashboard" }
                                                 ) {
                                                     Icon(
-                                                        imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                                                        imageVector = Icons.Outlined.ArrowBack,
                                                         contentDescription = "Back to Dashboard",
                                                         tint = CardBackground
                                                     )
