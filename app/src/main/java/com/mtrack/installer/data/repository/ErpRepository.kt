@@ -316,12 +316,23 @@ class ErpRepository(
     ): SellerDashboardMetrics? {
         val allVehicles = mutableListOf<SoldVehicleItem>()
         val allDues = mutableListOf<ClientDueItem>()
+
+        // Bind directly from /api/v1/erp-dashboard payload if already returned
+        if (existingSales != null) {
+            if (existingSales.soldVehiclesList.isNotEmpty()) {
+                allVehicles.addAll(existingSales.soldVehiclesList)
+            }
+            if (existingSales.clientDuesList.isNotEmpty()) {
+                allDues.addAll(existingSales.clientDuesList)
+            }
+        }
+
         val isSeller = currentUser != null && !currentUser.role.equals("admin", true)
         val sellerUsername = currentUser?.username?.trim()?.lowercase() ?: ""
         val sellerFullName = currentUser?.fullName?.trim()?.lowercase() ?: ""
 
-        // 1. PRIMARY: Query /api/v1/vehicles first when authenticated
-        if (authHeader != null) {
+        // 1. PRIMARY: Query /api/v1/vehicles only if not already supplied
+        if (authHeader != null && allVehicles.isEmpty()) {
             // If logged in as seller, try seller parameter query first
             if (isSeller && sellerUsername.isNotEmpty()) {
                 try {
@@ -635,7 +646,8 @@ class ErpRepository(
             val id = obj.optInt("id", 0).takeIf { it > 0 }
                 ?: obj.optInt("vehicle_id", 0)
 
-            val plate = obj.optString("registration_no")
+            val plate = obj.optString("vehicle_no")
+                ?: obj.optString("registration_no")
                 ?: obj.optString("plate_number")
                 ?: obj.optString("vehicle_plate_number")
                 ?: obj.optString("reg_no")
@@ -643,7 +655,8 @@ class ErpRepository(
                 ?: obj.optString("vehicle_number")
                 ?: "MTK-${if (id > 0) id else (result.size + 1001)}"
 
-            val model = obj.optString("vehicle_name")
+            val model = obj.optString("vehicle_model")
+                ?: obj.optString("vehicle_name")
                 ?: obj.optString("vehicle_brand_model")
                 ?: obj.optString("name")
                 ?: obj.optString("model")

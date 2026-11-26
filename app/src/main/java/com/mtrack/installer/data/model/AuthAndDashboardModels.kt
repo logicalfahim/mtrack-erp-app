@@ -102,10 +102,10 @@ data class SoldVehicleItem(
     @SerializedName("id", alternate = ["vehicle_id"])
     val id: Int = 0,
 
-    @SerializedName("vehicle_plate_number", alternate = ["plate_number", "registration_number", "reg_no", "plate_no", "vehicle_number"])
+    @SerializedName("vehicle_plate_number", alternate = ["vehicle_no", "plate_number", "registration_number", "reg_no", "plate_no", "vehicle_number"])
     val vehiclePlateNumber: String = "",
 
-    @SerializedName("vehicle_name", alternate = ["name", "model", "vehicle_model"])
+    @SerializedName("vehicle_name", alternate = ["name", "model", "vehicle_model", "vehicle_type"])
     val vehicleName: String? = null,
 
     @SerializedName("device_type", alternate = ["device", "tracker_type"])
@@ -425,7 +425,7 @@ data class StaffNotificationItem(
     @SerializedName("time_ago", alternate = ["time", "created_at", "timeAgo"])
     val timeAgo: String = "Recently",
 
-    @SerializedName("is_read", alternate = ["read", "status"])
+    @SerializedName("is_read", alternate = ["read", "status", "isRead"])
     val isRead: Boolean = false,
 
     @SerializedName("type", alternate = ["alert_type", "level"])
