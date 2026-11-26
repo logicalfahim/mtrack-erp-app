@@ -9,25 +9,22 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch API responses with headers
+      - name: Fetch API record structure
         run: |
-          echo "### ERP Endpoints Inspection" > report.txt
-          echo '```' >> report.txt
-          echo "=== 1. GET /api/v1/erp-dashboard ===" >> report.txt
-          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/erp-dashboard" | head -n 35 >> report.txt || true
-          echo "" >> report.txt
-          echo "=== 2. GET /api/v1/vehicles ===" >> report.txt
-          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/vehicles" | head -n 35 >> report.txt || true
-          echo "" >> report.txt
-          echo "=== 3. GET /api/v1/install-requests ===" >> report.txt
-          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/install-requests" | head -n 35 >> report.txt || true
-          echo "" >> report.txt
-          echo "=== 4. GET /api/v1/staffs ===" >> report.txt
-          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/staffs" | head -n 35 >> report.txt || true
-          echo "" >> report.txt
-          echo "=== 5. GET /api/v1/dashboard ===" >> report.txt
-          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/dashboard" | head -n 35 >> report.txt || true
-          echo '```' >> report.txt
-          gh issue create --title "ERP Status and Headers Report" --body-file report.txt --repo logicalfahim/mtrack-erp-app
+          echo "### ERP Live Schema Inspection" > schema.txt
+          echo '```json' >> schema.txt
+          echo "=== 1. Sample Install Request Record ===" >> schema.txt
+          curl -s -m 10 "https://erp.mtrack.com.bd/api/v1/install-requests?limit=1" >> schema.txt || true
+          echo "" >> schema.txt
+          echo "=== 2. GET /api/v1/users ===" >> schema.txt
+          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/users" | head -n 25 >> schema.txt || true
+          echo "" >> schema.txt
+          echo "=== 3. GET /api/v1/customers ===" >> schema.txt
+          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/customers" | head -n 25 >> schema.txt || true
+          echo "" >> schema.txt
+          echo "=== 4. GET /api/v1/staff ===" >> schema.txt
+          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/staff" | head -n 25 >> schema.txt || true
+          echo '```' >> schema.txt
+          gh issue create --title "ERP Schema and User Endpoints" --body-file schema.txt --repo logicalfahim/mtrack-erp-app
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
