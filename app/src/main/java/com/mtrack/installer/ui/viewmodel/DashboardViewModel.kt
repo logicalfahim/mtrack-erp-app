@@ -71,6 +71,9 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             val result = repository.getDashboard(token, month, currentUser)
             result.fold(
                 onSuccess = { res ->
+                    if (res.user != null) {
+                        sessionManager.saveUser(res.user)
+                    }
                     _uiState.update {
                         it.copy(
                             isLoading = false,

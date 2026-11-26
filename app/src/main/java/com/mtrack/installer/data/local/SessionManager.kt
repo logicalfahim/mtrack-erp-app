@@ -23,6 +23,12 @@ class SessionManager(context: Context) {
             .apply()
     }
 
+    fun saveUser(user: UserProfile) {
+        prefs.edit()
+            .putString(KEY_USER_JSON, gson.toJson(user))
+            .apply()
+    }
+
     fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
 
     fun getAuthToken(): String? = getToken()

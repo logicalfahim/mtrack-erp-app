@@ -57,7 +57,22 @@ data class UserProfile(
     val bloodGroup: String? = null,
 
     @SerializedName("address", alternate = ["location", "present_address", "base_station", "office_address", "city"])
-    val address: String? = null
+    val address: String? = null,
+
+    @SerializedName("permanent_address", alternate = ["perm_address", "home_address"])
+    val permanentAddress: String? = null,
+
+    @SerializedName("emergency_contact", alternate = ["emergency_phone", "emergency_number", "alt_phone"])
+    val emergencyContact: String? = null,
+
+    @SerializedName("nid_number", alternate = ["nid", "national_id"])
+    val nidNumber: String? = null,
+
+    @SerializedName("salary", alternate = ["basic_salary", "monthly_salary"])
+    val salary: Double? = null,
+
+    @SerializedName("joining_date", alternate = ["join_date", "hire_date", "created_at"])
+    val joiningDate: String? = null
 )
 
 /**

@@ -227,6 +227,71 @@ fun ProfileScreen(
                     title = "Base Station",
                     value = user?.address?.ifBlank { null } ?: "Dhaka, Bangladesh"
                 )
+
+                if (!user?.emergencyContact.isNullOrBlank()) {
+                    HorizontalDivider(color = BorderSubtle)
+                    ProfileInfoRow(
+                        icon = Icons.Outlined.ContactPhone,
+                        title = "Emergency Contact",
+                        value = user.emergencyContact
+                    )
+                }
+            }
+        }
+
+        // Employment & Personal Record Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = CardBackground),
+            border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.5.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "EMPLOYMENT & VERIFICATION",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextMuted,
+                        letterSpacing = 0.8.sp,
+                        fontSize = 10.5.sp
+                    )
+                )
+
+                ProfileInfoRow(
+                    icon = Icons.Outlined.Badge,
+                    title = "National ID (NID)",
+                    value = user?.nidNumber?.ifBlank { null } ?: "Verified on File"
+                )
+
+                HorizontalDivider(color = BorderSubtle)
+
+                ProfileInfoRow(
+                    icon = Icons.Outlined.FavoriteBorder,
+                    title = "Blood Group",
+                    value = user?.bloodGroup?.ifBlank { null } ?: "Not Specified"
+                )
+
+                if (!user?.joiningDate.isNullOrBlank()) {
+                    HorizontalDivider(color = BorderSubtle)
+                    ProfileInfoRow(
+                        icon = Icons.Outlined.CalendarToday,
+                        title = "Joining Date",
+                        value = user.joiningDate
+                    )
+                }
+
+                if (!user?.permanentAddress.isNullOrBlank()) {
+                    HorizontalDivider(color = BorderSubtle)
+                    ProfileInfoRow(
+                        icon = Icons.Outlined.Home,
+                        title = "Permanent Address",
+                        value = user.permanentAddress
+                    )
+                }
             }
         }
 
