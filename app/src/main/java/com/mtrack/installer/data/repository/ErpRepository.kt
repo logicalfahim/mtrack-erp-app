@@ -343,36 +343,107 @@ class ErpRepository(
             SellerDashboardMetrics()
         }
 
-        // Parse sold_vehicles_list array if available
+        // 1. Check for nested kpi_analytics object (v2.0 Enterprise Backend)
+        var kpiAnalytics: SellerKpiAnalytics? = baseMetrics.kpiAnalytics
+        if (kpiAnalytics == null && obj.has("kpi_analytics") && obj.get("kpi_analytics").isJsonObject) {
+            kpiAnalytics = try {
+                gson.fromJson(obj.getAsJsonObject("kpi_analytics"), SellerKpiAnalytics::class.java)
+            } catch (ignored: Exception) { null }
+        }
+
+        // 2. Check for nested crm_pipeline object
+        var crmPipeline: CrmPipelineSummary? = baseMetrics.crmPipeline
+        if (crmPipeline == null && obj.has("crm_pipeline") && obj.get("crm_pipeline").isJsonObject) {
+            crmPipeline = try {
+                gson.fromJson(obj.getAsJsonObject("crm_pipeline"), CrmPipelineSummary::class.java)
+            } catch (ignored: Exception) { null }
+        }
+
+        // 3. Parse sold_vehicles_list array if available
         val vehiclesList = mutableListOf<SoldVehicleItem>()
-        val vehicleKeys = listOf("sold_vehicles_list", "vehicles", "sold_vehicles", "fleet", "items", "data")
-        for (k in vehicleKeys) {
-            if (obj.has(k) && obj.get(k).isJsonArray) {
-                val parsed = parseVehiclesArray(obj.getAsJsonArray(k))
-                if (parsed.isNotEmpty()) {
-                    vehiclesList.addAll(parsed)
-                    break
+        if (baseMetrics.soldVehiclesList.isNotEmpty()) {
+            vehiclesList.addAll(baseMetrics.soldVehiclesList)
+        } else {
+            val vehicleKeys = listOf("sold_vehicles_list", "vehicles", "sold_vehicles", "fleet", "items", "data")
+            for (k in vehicleKeys) {
+                if (obj.has(k) && obj.get(k).isJsonArray) {
+                    val parsed = parseVehiclesArray(obj.getAsJsonArray(k))
+                    if (parsed.isNotEmpty()) {
+                        vehiclesList.addAll(parsed)
+                        break
+                    }
                 }
             }
         }
 
-        // If vehicles list parsed, merge with baseMetrics
-        if (vehiclesList.isNotEmpty()) {
-            val achieved = if (baseMetrics.achievedQty > 0) baseMetrics.achievedQty else vehiclesList.size
-            val target = if (baseMetrics.targetQty > 0) baseMetrics.targetQty else 20
-            val hardware = if (baseMetrics.hardwareValue > 0.0) baseMetrics.hardwareValue else vehiclesList.sumOf { it.devicePrice ?: 0.0 }
-            val mrr = if (baseMetrics.mrr > 0.0) baseMetrics.mrr else vehiclesList.sumOf { it.monthlyBill ?: 0.0 }
-            val progress = if (target > 0) ((achieved.toFloat() / target.toFloat()) * 100f).coerceIn(0f, 100f) else baseMetrics.progressPercentage
-
-            baseMetrics = baseMetrics.copy(
-                achievedQty = achieved,
-                soldVehiclesCount = maxOf(achieved, vehiclesList.size),
-                soldVehiclesList = vehiclesList,
-                hardwareValue = hardware,
-                mrr = mrr,
-                progressPercentage = progress
-            )
+        // 4. Parse client_dues_list array if available
+        val clientDuesList = mutableListOf<ClientDueItem>()
+        if (baseMetrics.clientDuesList.isNotEmpty()) {
+            clientDuesList.addAll(baseMetrics.clientDuesList)
+        } else {
+            val duesKeys = listOf("client_dues_list", "client_dues", "dues", "due_invoices", "invoices")
+            for (k in duesKeys) {
+                if (obj.has(k) && obj.get(k).isJsonArray) {
+                    val duesType = object : TypeToken<List<ClientDueItem>>() {}.type
+                    val parsedDues: List<ClientDueItem>? = try {
+                        gson.fromJson(obj.getAsJsonArray(k), duesType)
+                    } catch (ignored: Exception) { null }
+                    if (!parsedDues.isNullOrEmpty()) {
+                        clientDuesList.addAll(parsedDues)
+                        break
+                    }
+                }
+            }
         }
+
+        // Extract key metrics strictly mapping to backend kpi_analytics
+        val achieved = kpiAnalytics?.achievedQty?.takeIf { it > 0 }
+            ?: (if (baseMetrics.achievedQty > 0) baseMetrics.achievedQty else vehiclesList.size)
+
+        val target = kpiAnalytics?.targetQty?.takeIf { it > 0 }
+            ?: (if (baseMetrics.targetQty > 0) baseMetrics.targetQty else 20)
+
+        val progress = kpiAnalytics?.progressPercentage?.takeIf { it > 0f }
+            ?: (if (target > 0) ((achieved.toFloat() / target.toFloat()) * 100f).coerceIn(0f, 100f) else baseMetrics.progressPercentage)
+
+        val hardware = kpiAnalytics?.totalHardwareRevenue?.takeIf { it > 0.0 }
+            ?: (if (baseMetrics.hardwareValue > 0.0) baseMetrics.hardwareValue else vehiclesList.sumOf { it.devicePrice ?: 0.0 })
+
+        val mrr = kpiAnalytics?.totalMrr?.takeIf { it > 0.0 }
+            ?: (if (baseMetrics.mrr > 0.0) baseMetrics.mrr else vehiclesList.sumOf { it.monthlyBill ?: 0.0 })
+
+        val earnedCommission = kpiAnalytics?.earnedCommission?.takeIf { it > 0.0 }
+            ?: baseMetrics.earnedCommission
+
+        val totalDue = kpiAnalytics?.totalMarketDue?.takeIf { it > 0.0 }
+            ?: (if (clientDuesList.isNotEmpty()) clientDuesList.sumOf { it.dueAmount } else baseMetrics.totalDueAmount)
+
+        val duesCount = kpiAnalytics?.clientDuesCount?.takeIf { it > 0 }
+            ?: (if (clientDuesList.isNotEmpty()) clientDuesList.size else baseMetrics.clientDuesCount)
+
+        val lifetime = kpiAnalytics?.lifetimeInstalled?.takeIf { it > 0 }
+            ?: baseMetrics.lifetimeInstalled
+
+        val growth = kpiAnalytics?.growthRate?.takeIf { it != 0f }
+            ?: baseMetrics.growthRate
+
+        baseMetrics = baseMetrics.copy(
+            kpiAnalytics = kpiAnalytics,
+            crmPipeline = crmPipeline,
+            targetQty = target,
+            achievedQty = achieved,
+            soldVehiclesCount = achieved,
+            soldVehiclesList = vehiclesList,
+            clientDuesCount = duesCount,
+            clientDuesList = clientDuesList,
+            hardwareValue = hardware,
+            mrr = mrr,
+            progressPercentage = progress,
+            earnedCommission = earnedCommission,
+            totalDueAmount = totalDue,
+            lifetimeInstalled = lifetime,
+            growthRate = growth
+        )
 
         return baseMetrics
     }
@@ -611,6 +682,14 @@ class ErpRepository(
                 ?: obj.optStringClean("device")
                 ?: "GPS Tracker"
 
+            val imei = obj.optStringClean("device_imei")
+                ?: obj.optStringClean("imei")
+                ?: obj.optStringClean("tracker_imei")
+
+            val sim = obj.optStringClean("sim_number")
+                ?: obj.optStringClean("sim")
+                ?: obj.optStringClean("sim_no")
+
             val price = obj.optDouble("device_price", 0.0).takeIf { it > 0 }
                 ?: obj.optDouble("price", 0.0)
 
@@ -626,6 +705,9 @@ class ErpRepository(
 
             val status = obj.optStringClean("status")
                 ?: "Active"
+
+            val customerId = obj.optInt("customer_id", 0).takeIf { it > 0 }
+                ?: obj.optInt("client_id", 0).takeIf { it > 0 }
 
             val customerName = obj.optStringClean("customer_name")
                 ?: obj.optStringClean("client_name")
@@ -685,11 +767,14 @@ class ErpRepository(
                     vehiclePlateNumber = plate,
                     vehicleName = model,
                     deviceType = device,
+                    deviceImei = imei,
+                    simNumber = sim,
                     devicePrice = price,
                     monthlyBill = bill,
                     referralCommission = commission,
                     installationDate = installDate,
                     status = status,
+                    customerId = customerId,
                     customerName = customerName,
                     customerPhone = customerPhone,
                     sellerId = sellerId,

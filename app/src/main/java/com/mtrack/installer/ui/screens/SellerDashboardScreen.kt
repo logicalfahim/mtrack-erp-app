@@ -460,6 +460,34 @@ fun SellerDashboardScreen(
             }
         }
 
+        // 4b. Hardware Revenue & Added Monthly MRR
+        item(key = "kpi_columns_revenue", contentType = "kpi_pair") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                BentoSubCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Hardware Sales",
+                    value = "BDT ${numberFormatShort(salesData?.hardwareValue ?: 0.0)}",
+                    subtitle = "This Month",
+                    icon = Icons.Outlined.Devices,
+                    iconTint = BrandBluePrimary,
+                    iconBg = BrandBlueLight
+                )
+
+                BentoSubCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Monthly MRR",
+                    value = "BDT ${numberFormatShort(salesData?.mrr ?: 0.0)}/m",
+                    subtitle = "Recurring Bill",
+                    icon = Icons.Outlined.TrendingUp,
+                    iconTint = EmeraldSuccess,
+                    iconBg = EmeraldBg
+                )
+            }
+        }
+
         // 5. Linear-Style Modern Floating Pill Switcher
         item(key = "tab_bar", contentType = "tab_control") {
             Surface(
@@ -841,10 +869,28 @@ private fun ModernSoldVehicleRow(
                             )
                         }
                     }
+                    val meta = listOfNotNull(
+                        vehicle.deviceType?.takeIf { it.isNotBlank() },
+                        vehicle.installationDate?.let { "Installed: $it" }
+                    ).joinToString(" • ")
                     Text(
-                        text = "Installed: ${vehicle.installationDate ?: "N/A"}",
+                        text = meta.ifEmpty { "Installed: ${vehicle.installationDate ?: "N/A"}" },
                         style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.sp)
                     )
+                    val imeiSim = listOfNotNull(
+                        vehicle.deviceImei?.let { "IMEI: $it" },
+                        vehicle.simNumber?.let { "SIM: $it" }
+                    ).joinToString(" | ")
+                    if (imeiSim.isNotEmpty()) {
+                        Text(
+                            text = imeiSim,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = BrandBluePrimary,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 9.5.sp
+                            )
+                        )
+                    }
                 }
 
                 if (!vehicle.customerPhone.isNullOrBlank()) {

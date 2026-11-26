@@ -111,6 +111,12 @@ data class SoldVehicleItem(
     @SerializedName("device_type", alternate = ["device", "tracker_type"])
     val deviceType: String? = "Voice",
 
+    @SerializedName("device_imei", alternate = ["imei", "tracker_imei"])
+    val deviceImei: String? = null,
+
+    @SerializedName("sim_number", alternate = ["sim", "sim_no", "mobile_sim"])
+    val simNumber: String? = null,
+
     @SerializedName("device_price", alternate = ["price", "amount", "unit_price"])
     val devicePrice: Double? = 0.0,
 
@@ -125,6 +131,9 @@ data class SoldVehicleItem(
 
     @SerializedName("status", alternate = ["install_status", "device_status"])
     val status: String? = "Active",
+
+    @SerializedName("customer_id", alternate = ["client_id"])
+    val customerId: Int? = null,
 
     @SerializedName("customer_name", alternate = ["client_name", "customer", "client"])
     val customerName: String? = null,
@@ -199,6 +208,34 @@ data class ClientDueItem(
 )
 
 /**
+ * Seller KPI Analytics matching backend data contract
+ */
+data class SellerKpiAnalytics(
+    @SerializedName("target_qty") val targetQty: Int = 20,
+    @SerializedName("achieved_qty") val achievedQty: Int = 0,
+    @SerializedName("progress_percentage") val progressPercentage: Float = 0f,
+    @SerializedName("lifetime_installed") val lifetimeInstalled: Int = 0,
+    @SerializedName("last_month_achieved") val lastMonthAchieved: Int = 0,
+    @SerializedName("growth_rate") val growthRate: Float = 0f,
+    @SerializedName("total_hardware_revenue") val totalHardwareRevenue: Double = 0.0,
+    @SerializedName("total_mrr") val totalMrr: Double = 0.0,
+    @SerializedName("portfolio_lifetime_mrr") val portfolioLifetimeMrr: Double = 0.0,
+    @SerializedName("earned_commission") val earnedCommission: Double = 0.0,
+    @SerializedName("total_market_due") val totalMarketDue: Double = 0.0,
+    @SerializedName("client_dues_count") val clientDuesCount: Int = 0
+)
+
+/**
+ * CRM Pipeline Summary matching backend data contract
+ */
+data class CrmPipelineSummary(
+    @SerializedName("total_leads") val totalLeads: Int = 0,
+    @SerializedName("leads_demand_qty") val leadsDemandQty: Int = 0,
+    @SerializedName("won_leads_count") val wonLeadsCount: Int = 0,
+    @SerializedName("due_followups_today") val dueFollowupsToday: Int = 0
+)
+
+/**
  * Seller / Sales Department Performance Metrics
  */
 data class SellerDashboardMetrics(
@@ -207,6 +244,12 @@ data class SellerDashboardMetrics(
 
     @SerializedName("month_name", alternate = ["month_label", "name"])
     val monthName: String = "",
+
+    @SerializedName("kpi_analytics")
+    val kpiAnalytics: SellerKpiAnalytics? = null,
+
+    @SerializedName("crm_pipeline")
+    val crmPipeline: CrmPipelineSummary? = null,
 
     @SerializedName("target_qty", alternate = ["target", "sales_target", "monthly_target"])
     val targetQty: Int = 0,

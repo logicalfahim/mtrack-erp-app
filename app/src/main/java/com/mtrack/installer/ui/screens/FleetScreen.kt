@@ -418,6 +418,20 @@ private fun FleetWithDueCardItem(
                         text = "Device: ${vehicle.deviceType ?: "GPS Tracker"} • Installed: ${vehicle.installationDate ?: "N/A"}",
                         style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.sp)
                     )
+                    val imeiSim = listOfNotNull(
+                        vehicle.deviceImei?.let { "IMEI: $it" },
+                        vehicle.simNumber?.let { "SIM: $it" }
+                    ).joinToString(" | ")
+                    if (imeiSim.isNotEmpty()) {
+                        Text(
+                            text = imeiSim,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = BrandBluePrimary,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 9.5.sp
+                            )
+                        )
+                    }
                 }
 
                 if (!vehicle.customerPhone.isNullOrBlank()) {
