@@ -115,18 +115,26 @@ interface MTrackApiService {
     @GET("api/v1/install-requests")
     suspend fun getInstallRequests(
         @Header("Authorization") bearerToken: String? = null,
-        @Query("limit") limit: Int = 100
+        @Query("limit") limit: Int = 100,
+        @Query("ref_name") refName: String? = null,
+        @Query("seller") seller: String? = null
     ): Response<com.google.gson.JsonElement>
 
     @GET("api/v1/sales")
     suspend fun getSales(
         @Header("Authorization") bearerToken: String,
-        @Query("month") month: String? = null
+        @Query("month") month: String? = null,
+        @Query("seller") seller: String? = null,
+        @Query("ref_name") refName: String? = null
     ): Response<com.google.gson.JsonElement>
 
     @GET("api/v1/vehicles")
     suspend fun getVehicles(
-        @Header("Authorization") bearerToken: String
+        @Header("Authorization") bearerToken: String,
+        @Query("seller") seller: String? = null,
+        @Query("ref_name") refName: String? = null,
+        @Query("month") month: String? = null,
+        @Query("limit") limit: Int = 100
     ): Response<com.google.gson.JsonElement>
 
     /**

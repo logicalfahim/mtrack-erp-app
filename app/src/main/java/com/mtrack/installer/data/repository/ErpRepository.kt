@@ -59,7 +59,11 @@ class ErpRepository(
         }
     }
 
-    suspend fun getDashboard(token: String?, month: String? = null): Result<DashboardResponse> {
+    suspend fun getDashboard(
+        token: String?,
+        month: String? = null,
+        currentUser: UserProfile? = null
+    ): Result<DashboardResponse> {
         return withContext(Dispatchers.IO) {
             try {
                 val authHeader = if (!token.isNullOrBlank()) {
@@ -68,7 +72,7 @@ class ErpRepository(
 
                 // 1. Fetch main dashboard with fallback endpoints (when authenticated)
                 var dashResponse = if (authHeader != null) {
-                    fetchDashboardPayload(authHeader, month)
+                    fetchDashboardPayload(authHeader, month, currentUser)
                 } else {
                     DashboardResponse(status = "success", code = 200, data = ErpDashboardData())
                 }
@@ -86,7 +90,7 @@ class ErpRepository(
                 // 3. Fallback for Sales / Fleet Department (works WITH or WITHOUT login via /api/v1/install-requests)
                 val currentSales = currentData.salesDepartment
                 if (currentSales == null || (currentSales.soldVehiclesList.isEmpty() && currentSales.clientDuesList.isEmpty())) {
-                    val realSales = fetchSalesAndFleetData(authHeader, month, currentSales)
+                    val realSales = fetchSalesAndFleetData(authHeader, month, currentSales, currentUser)
                     if (realSales != null) {
                         currentData = currentData.copy(salesDepartment = realSales)
                     }
@@ -109,7 +113,23 @@ class ErpRepository(
     /**
      * Tries primary and alternative dashboard endpoints
      */
-    private suspend fun fetchDashboardPayload(authHeader: String, month: String?): DashboardResponse {
+    private suspend fun fetchDashboardPayload(
+        authHeader: String,
+        month: String?,
+        currentUser: UserProfile? = null
+    ): DashboardResponse {
+        val isSeller = currentUser != null && !currentUser.role.equals("admin", true)
+
+        if (isSeller) {
+            try {
+                val r3 = api.getSellerDashboard(authHeader, month)
+                if (r3.isSuccessful && r3.body() != null) {
+                    val parsed = parseDashboardJson(r3.body()!!)
+                    if (parsed != null && (parsed.data?.salesDepartment != null || parsed.data?.staffDirectory?.isNotEmpty() == true)) return parsed
+                }
+            } catch (ignored: Exception) {}
+        }
+
         try {
             val r1 = api.getErpDashboard(authHeader, month)
             if (r1.isSuccessful && r1.body() != null) {
@@ -126,13 +146,15 @@ class ErpRepository(
             }
         } catch (ignored: Exception) {}
 
-        try {
-            val r3 = api.getSellerDashboard(authHeader, month)
-            if (r3.isSuccessful && r3.body() != null) {
-                val parsed = parseDashboardJson(r3.body()!!)
-                if (parsed != null) return parsed
-            }
-        } catch (ignored: Exception) {}
+        if (!isSeller) {
+            try {
+                val r3 = api.getSellerDashboard(authHeader, month)
+                if (r3.isSuccessful && r3.body() != null) {
+                    val parsed = parseDashboardJson(r3.body()!!)
+                    if (parsed != null) return parsed
+                }
+            } catch (ignored: Exception) {}
+        }
 
         try {
             val r4 = api.getAdminDashboard(authHeader, month)
@@ -147,17 +169,46 @@ class ErpRepository(
 
     private fun parseDashboardJson(json: JsonElement): DashboardResponse? {
         return try {
-            if (json.isJsonObject) {
-                val obj = json.asJsonObject
-                // If it's already a full DashboardResponse with status/data
+            if (!json.isJsonObject) return null
+            val obj = json.asJsonObject
+
+            // 1. Try standard DashboardResponse
+            var response: DashboardResponse? = try {
                 if (obj.has("data") || obj.has("sales_department") || obj.has("staff_directory")) {
                     gson.fromJson(json, DashboardResponse::class.java)
-                } else {
-                    null
+                } else null
+            } catch (e: Exception) { null }
+
+            // 2. Check if "data" is actually a flat SellerDashboardMetrics object
+            if (obj.has("data") && obj.get("data").isJsonObject) {
+                val dataObj = obj.getAsJsonObject("data")
+                if (response?.data?.salesDepartment == null &&
+                    (dataObj.has("achieved_qty") || dataObj.has("sales") || dataObj.has("sold_vehicles") || dataObj.has("target_qty") || dataObj.has("vehicles"))
+                ) {
+                    val metrics = try {
+                        gson.fromJson(dataObj, SellerDashboardMetrics::class.java)
+                    } catch (e: Exception) { null }
+
+                    if (metrics != null) {
+                        val currData = response?.data ?: ErpDashboardData()
+                        response = (response ?: DashboardResponse(status = "success", code = 200)).copy(
+                            data = currData.copy(salesDepartment = metrics)
+                        )
+                    }
                 }
-            } else {
-                null
+            } else if (response?.data?.salesDepartment == null &&
+                (obj.has("achieved_qty") || obj.has("sold_vehicles") || obj.has("target_qty"))
+            ) {
+                val metrics = try {
+                    gson.fromJson(obj, SellerDashboardMetrics::class.java)
+                } catch (e: Exception) { null }
+
+                if (metrics != null) {
+                    response = DashboardResponse(status = "success", code = 200, data = ErpDashboardData(salesDepartment = metrics))
+                }
             }
+
+            response
         } catch (ignored: Exception) {
             null
         }
@@ -250,28 +301,57 @@ class ErpRepository(
     private suspend fun fetchSalesAndFleetData(
         authHeader: String?,
         month: String?,
-        existingSales: SellerDashboardMetrics?
+        existingSales: SellerDashboardMetrics?,
+        currentUser: UserProfile? = null
     ): SellerDashboardMetrics? {
         val allVehicles = mutableListOf<SoldVehicleItem>()
         val allDues = mutableListOf<ClientDueItem>()
+        val isSeller = currentUser != null && !currentUser.role.equals("admin", true)
+        val sellerUsername = currentUser?.username?.trim()?.lowercase() ?: ""
+        val sellerFullName = currentUser?.fullName?.trim()?.lowercase() ?: ""
 
         // 1. PRIMARY: Query /api/v1/vehicles first when authenticated
         if (authHeader != null) {
-            try {
-                val vehiclesResp = api.getVehicles(authHeader)
-                if (vehiclesResp.isSuccessful && vehiclesResp.body() != null) {
-                    val vehicles = parseVehiclesArray(vehiclesResp.body()!!)
-                    if (vehicles.isNotEmpty()) {
-                        allVehicles.addAll(vehicles)
+            // If logged in as seller, try seller parameter query first
+            if (isSeller && sellerUsername.isNotEmpty()) {
+                try {
+                    val sVehiclesResp = api.getVehicles(
+                        bearerToken = authHeader,
+                        seller = sellerUsername,
+                        refName = sellerUsername,
+                        month = month
+                    )
+                    if (sVehiclesResp.isSuccessful && sVehiclesResp.body() != null) {
+                        val vList = parseVehiclesArray(sVehiclesResp.body()!!)
+                        if (vList.isNotEmpty()) {
+                            allVehicles.addAll(vList)
+                        }
                     }
-                }
-            } catch (ignored: Exception) {}
+                } catch (ignored: Exception) {}
+            }
+
+            if (allVehicles.isEmpty()) {
+                try {
+                    val vehiclesResp = api.getVehicles(bearerToken = authHeader, month = month)
+                    if (vehiclesResp.isSuccessful && vehiclesResp.body() != null) {
+                        val vehicles = parseVehiclesArray(vehiclesResp.body()!!)
+                        if (vehicles.isNotEmpty()) {
+                            allVehicles.addAll(vehicles)
+                        }
+                    }
+                } catch (ignored: Exception) {}
+            }
         }
 
         // 2. Try /api/v1/sales (when authHeader is present) to obtain sales metrics & client dues
         if (authHeader != null) {
             try {
-                val salesResp = api.getSales(authHeader, month)
+                val salesResp = api.getSales(
+                    bearerToken = authHeader,
+                    month = month,
+                    seller = if (isSeller) sellerUsername else null,
+                    refName = if (isSeller) sellerUsername else null
+                )
                 if (salesResp.isSuccessful && salesResp.body() != null) {
                     val parsed = parseSalesPayload(salesResp.body()!!)
                     if (parsed != null) {
@@ -288,16 +368,29 @@ class ErpRepository(
 
         // 3. Fallback: ONLY if allVehicles is STILL empty (e.g. unauthenticated or empty), fallback to /api/v1/install-requests
         if (allVehicles.isEmpty()) {
-            try {
-                val installResp = api.getInstallRequests(authHeader, 100)
-                if (installResp.isSuccessful && installResp.body() != null) {
-                    val (vehicles, dues) = parseInstallRequestsJson(installResp.body()!!)
-                    allVehicles.addAll(vehicles)
-                    if (allDues.isEmpty()) {
-                        allDues.addAll(dues)
+            if (isSeller && sellerUsername.isNotEmpty()) {
+                try {
+                    val installRespSeller = api.getInstallRequests(authHeader, 100, refName = sellerUsername)
+                    if (installRespSeller.isSuccessful && installRespSeller.body() != null) {
+                        val (vehicles, dues) = parseInstallRequestsJson(installRespSeller.body()!!)
+                        allVehicles.addAll(vehicles)
+                        if (allDues.isEmpty()) allDues.addAll(dues)
                     }
-                }
-            } catch (ignored: Exception) {}
+                } catch (ignored: Exception) {}
+            }
+
+            if (allVehicles.isEmpty()) {
+                try {
+                    val installResp = api.getInstallRequests(authHeader, 100)
+                    if (installResp.isSuccessful && installResp.body() != null) {
+                        val (vehicles, dues) = parseInstallRequestsJson(installResp.body()!!)
+                        allVehicles.addAll(vehicles)
+                        if (allDues.isEmpty()) {
+                            allDues.addAll(dues)
+                        }
+                    }
+                } catch (ignored: Exception) {}
+            }
         }
 
         // 4. If allDues is empty, extract any overdue records directly from vehicles
@@ -329,28 +422,54 @@ class ErpRepository(
             it.vehiclePlateNumber.ifBlank { it.id.toString() }
         }.sortedByDescending { it.installationDate ?: "" }
 
+        // Filter for seller if logged in as a seller (non-admin)
+        val filteredVehicles = if (isSeller && (sellerUsername.isNotEmpty() || sellerFullName.isNotEmpty())) {
+            val matches = distinctVehicles.filter { v ->
+                val s = (v.sellerName ?: "").trim().lowercase()
+                val uMatch = sellerUsername.isNotEmpty() && (s == sellerUsername || s.contains(sellerUsername) || sellerUsername.contains(s))
+                val fMatch = sellerFullName.isNotEmpty() && (s == sellerFullName || s.contains(sellerFullName) || sellerFullName.contains(s))
+                uMatch || fMatch
+            }
+            if (matches.isNotEmpty()) matches else distinctVehicles
+        } else {
+            distinctVehicles
+        }
+
         val distinctDues = allDues.distinctBy {
             it.invoiceNo.ifBlank { "${it.invoiceId}-${it.customerName}" }
         }
 
-        if (distinctVehicles.isEmpty() && distinctDues.isEmpty() && existingSales == null) {
+        val filteredDues = if (isSeller && (sellerUsername.isNotEmpty() || sellerFullName.isNotEmpty())) {
+            val matches = distinctDues.filter { d ->
+                filteredVehicles.any { v -> v.vehiclePlateNumber == d.vehiclePlateNumber || v.id == d.invoiceId }
+            }
+            if (matches.isNotEmpty()) matches else distinctDues
+        } else {
+            distinctDues
+        }
+
+        if (filteredVehicles.isEmpty() && filteredDues.isEmpty() && existingSales == null) {
             return null
         }
 
-        val totalDue = distinctDues.sumOf { it.dueAmount }.takeIf { it > 0 }
-            ?: distinctVehicles.sumOf { it.dueAmount }
+        val totalDue = filteredDues.sumOf { it.dueAmount }.takeIf { it > 0 }
+            ?: filteredVehicles.sumOf { it.dueAmount }
             ?: (existingSales?.totalDueAmount ?: 0.0)
 
-        val achieved = distinctVehicles.size.takeIf { it > 0 } ?: (existingSales?.achievedQty ?: 0)
+        // Important: Respect existingSales.achievedQty if provided by backend (e.g. 11), or filteredVehicles.size
+        val achieved = existingSales?.achievedQty?.takeIf { it > 0 }
+            ?: filteredVehicles.size.takeIf { it > 0 }
+            ?: 0
+
         val target = existingSales?.targetQty?.takeIf { it > 0 } ?: 20
         val progress = if (target > 0) ((achieved.toFloat() / target.toFloat()) * 100f).coerceIn(0f, 100f) else 0f
 
         return (existingSales ?: SellerDashboardMetrics()).copy(
             achievedQty = achieved,
-            soldVehiclesCount = distinctVehicles.size,
-            soldVehiclesList = distinctVehicles,
-            clientDuesCount = distinctDues.size,
-            clientDuesList = distinctDues,
+            soldVehiclesCount = maxOf(achieved, filteredVehicles.size),
+            soldVehiclesList = filteredVehicles,
+            clientDuesCount = filteredDues.size,
+            clientDuesList = filteredDues,
             totalDueAmount = totalDue,
             progressPercentage = progress,
             monthName = existingSales?.monthName?.ifBlank { null } ?: (month ?: "Current Month")
@@ -486,9 +605,13 @@ class ErpRepository(
                 val obj = json.asJsonObject
                 when {
                     obj.has("data") && obj.get("data").isJsonArray -> obj.getAsJsonArray("data")
+                    obj.has("data") && obj.get("data").isJsonObject && obj.getAsJsonObject("data").has("data") && obj.getAsJsonObject("data").get("data").isJsonArray -> obj.getAsJsonObject("data").getAsJsonArray("data")
+                    obj.has("data") && obj.get("data").isJsonObject && obj.getAsJsonObject("data").has("vehicles") && obj.getAsJsonObject("data").get("vehicles").isJsonArray -> obj.getAsJsonObject("data").getAsJsonArray("vehicles")
+                    obj.has("data") && obj.get("data").isJsonObject && obj.getAsJsonObject("data").has("items") && obj.getAsJsonObject("data").get("items").isJsonArray -> obj.getAsJsonObject("data").getAsJsonArray("items")
                     obj.has("vehicles") && obj.get("vehicles").isJsonArray -> obj.getAsJsonArray("vehicles")
                     obj.has("items") && obj.get("items").isJsonArray -> obj.getAsJsonArray("items")
                     obj.has("list") && obj.get("list").isJsonArray -> obj.getAsJsonArray("list")
+                    obj.has("requests") && obj.get("requests").isJsonArray -> obj.getAsJsonArray("requests")
                     else -> null
                 }
             }

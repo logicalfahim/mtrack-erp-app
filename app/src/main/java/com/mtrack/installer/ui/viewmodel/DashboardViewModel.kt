@@ -68,7 +68,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         viewModelScope.launch {
-            val result = repository.getDashboard(token, month)
+            val result = repository.getDashboard(token, month, currentUser)
             result.fold(
                 onSuccess = { res ->
                     _uiState.update {
