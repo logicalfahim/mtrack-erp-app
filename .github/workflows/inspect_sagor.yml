@@ -1,0 +1,63 @@
+name: Inspect Sagor Sales
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch and Analyze Sagor Records
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - << 'EOF'
+          import urllib.request, json, os, subprocess
+
+          url = 'https://erp.mtrack.com.bd/api/v1/install-requests?limit=100'
+          req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+          
+          try:
+              with urllib.request.urlopen(req) as resp:
+                  raw = resp.read().decode('utf-8')
+                  data = json.loads(raw)
+          except Exception as e:
+              print(f"Failed to fetch install-requests: {e}")
+              data = {}
+
+          items = data.get('data') or data.get('requests') or []
+          print(f"Total install requests: {len(items)}")
+
+          ref_counts = {}
+          sagor_items = []
+          for it in items:
+              ref = str(it.get('ref_name') or 'None').strip()
+              ref_counts[ref] = ref_counts.get(ref, 0) + 1
+              
+              dump = json.dumps(it, ensure_ascii=False).lower()
+              if 'sagor' in dump:
+                  sagor_items.append(it)
+
+          print("\n=== All ref_name counts ===")
+          for k, v in sorted(ref_counts.items(), key=lambda x: x[1], reverse=True):
+              print(f"  {k}: {v}")
+
+          print(f"\n=== Sagor Items Found: {len(sagor_items)} ===")
+          for idx, it in enumerate(sagor_items):
+              print(f"[{idx+1}] ID={it.get('id')} Reg={it.get('registration_no')} Model={it.get('vehicle_brand_model')} Ref={it.get('ref_name')} Date={it.get('pref_date_time')} Created={it.get('created_at')}")
+
+          report = f"""### Sagor Sales Inspection Report
+          **Total Install Requests:** {len(items)}
+          **Sagor matches:** {len(sagor_items)}
+
+          #### ref_name counts:
+          ```
+          """
+          for k, v in sorted(ref_counts.items(), key=lambda x: x[1], reverse=True):
+              report += f"{k}: {v}\n"
+          report += "```\n"
+
+          if sagor_items:
+              report += "#### Sagor sample item:\n```json\n" + json.dumps(sagor_items[0], indent=2, ensure_ascii=False) + "\n```"
+
+          subprocess.run(['gh', 'issue', 'create', '--repo', 'logicalfahim/mtrack-erp-app', '--title', 'Sagor Inspection Data', '--body', report])
+          EOF
