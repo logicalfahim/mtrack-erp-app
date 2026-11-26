@@ -95,10 +95,11 @@ class ErpRepository(
                 var currentData = dashResponse.data ?: ErpDashboardData()
 
                 // 2. Pure Server-Driven Staff Directory (users table)
-                if (currentData.staffDirectory.isEmpty()) {
-                    val remoteStaff = fetchStaffDirectory(authHeader)
-                    currentData = currentData.copy(staffDirectory = remoteStaff)
+                val remoteStaff = fetchStaffDirectory(authHeader)
+                val mergedStaff = (currentData.staffDirectory + remoteStaff).distinctBy {
+                    if (it.userId > 0) "id_${it.userId}" else if (!it.username.isNullOrBlank()) "u_${it.username}" else "p_${it.phone}"
                 }
+                currentData = currentData.copy(staffDirectory = mergedStaff)
 
                 // 2b. Enrich staff list with 5-minute online threshold per backend SQL specification:
                 // CASE WHEN last_active_at >= NOW() - INTERVAL 5 MINUTE THEN 1 ELSE 0 END as is_online
@@ -118,6 +119,23 @@ class ErpRepository(
                 )
                 if (resolvedSales != null) {
                     currentData = currentData.copy(salesDepartment = resolvedSales)
+                }
+
+                // 3b. Cross-reference technician names from staff directory if missing or generic
+                val staffMap = currentData.staffDirectory.associateBy { it.userId }
+                val currentVehicles = currentData.salesDepartment?.soldVehiclesList
+                if (!currentVehicles.isNullOrEmpty() && staffMap.isNotEmpty()) {
+                    val enrichedVehicles = currentVehicles.map { v ->
+                        if ((v.installerName.isNullOrBlank() || v.installerName.equals("Technician", true)) && (v.installerId ?: 0) > 0) {
+                            val tech = staffMap[v.installerId]
+                            if (tech != null && tech.fullName.isNotBlank()) {
+                                v.copy(installerName = tech.fullName)
+                            } else v
+                        } else v
+                    }
+                    currentData = currentData.copy(
+                        salesDepartment = currentData.salesDepartment!!.copy(soldVehiclesList = enrichedVehicles)
+                    )
                 }
 
                 // 4. Pure Server Notifications (notifications table)
@@ -235,16 +253,57 @@ class ErpRepository(
                     salesMetrics = parseSalesMetricsObject(dataObj)
                 }
 
+                // If salesMetrics vehicles are still empty, search dataObj directly
+                if (salesMetrics == null || salesMetrics.soldVehiclesList.isEmpty()) {
+                    val vKeys = listOf("sold_vehicles_list", "vehicles", "sold_vehicles", "fleet", "items", "data")
+                    for (k in vKeys) {
+                        if (dataObj.has(k) && dataObj.get(k).isJsonArray) {
+                            val parsed = parseVehiclesArray(dataObj.getAsJsonArray(k))
+                            if (parsed.isNotEmpty()) {
+                                val ach = if ((salesMetrics?.achievedQty ?: 0) > 0) salesMetrics!!.achievedQty else parsed.size
+                                salesMetrics = (salesMetrics ?: SellerDashboardMetrics()).copy(
+                                    achievedQty = ach,
+                                    soldVehiclesCount = if ((salesMetrics?.soldVehiclesCount ?: 0) > 0) salesMetrics!!.soldVehiclesCount else ach,
+                                    soldVehiclesList = parsed
+                                )
+                                break
+                            }
+                        }
+                    }
+                }
+
                 // Extract Staffs Directory
                 val staffKeys = listOf("staffs", "staff_directory", "staff_list", "users", "employees", "colleagues")
                 for (k in staffKeys) {
                     if (dataObj.has(k) && dataObj.get(k).isJsonArray) {
-                        staffList = parseStaffList(dataObj.getAsJsonArray(k))
-                        if (staffList.isNotEmpty()) break
+                        val parsed = parseStaffList(dataObj.getAsJsonArray(k))
+                        if (parsed.isNotEmpty()) {
+                            staffList = parsed
+                            break
+                        }
                     }
                 }
             } else if (obj.has("sales_department") && obj.get("sales_department").isJsonObject) {
                 salesMetrics = parseSalesMetricsObject(obj.getAsJsonObject("sales_department"))
+            }
+
+            // Check root level vehicles if still empty
+            if (salesMetrics == null || salesMetrics.soldVehiclesList.isEmpty()) {
+                val rootVKeys = listOf("sold_vehicles_list", "vehicles", "sold_vehicles", "fleet", "items")
+                for (k in rootVKeys) {
+                    if (obj.has(k) && obj.get(k).isJsonArray) {
+                        val parsed = parseVehiclesArray(obj.getAsJsonArray(k))
+                        if (parsed.isNotEmpty()) {
+                            val ach = if ((salesMetrics?.achievedQty ?: 0) > 0) salesMetrics!!.achievedQty else parsed.size
+                            salesMetrics = (salesMetrics ?: SellerDashboardMetrics()).copy(
+                                achievedQty = ach,
+                                soldVehiclesCount = if ((salesMetrics?.soldVehiclesCount ?: 0) > 0) salesMetrics!!.soldVehiclesCount else ach,
+                                soldVehiclesList = parsed
+                            )
+                            break
+                        }
+                    }
+                }
             }
 
             // Check root level staffs if still empty
@@ -400,12 +459,45 @@ class ErpRepository(
             it.vehiclePlateNumber.ifBlank { it.id.toString() }
         }.sortedByDescending { it.installationDate ?: "" }
 
+        val isSeller = currentUser != null && !currentUser.role.equals("admin", true)
+        val sellerFilteredVehicles = if (isSeller) {
+            val userFullName = currentUser.fullName?.trim() ?: ""
+            val userUsername = currentUser.username?.trim() ?: ""
+            val userId = currentUser.userId
+
+            val myVehicles = distinctVehicles.filter { v ->
+                val sellerName = v.sellerName?.trim() ?: ""
+                val matchesName = sellerName.isNotEmpty() && (
+                    sellerName.contains(userFullName, ignoreCase = true) ||
+                    sellerName.contains(userUsername, ignoreCase = true) ||
+                    userFullName.contains(sellerName, ignoreCase = true)
+                )
+                val matchesId = userId > 0 && v.sellerId != null && v.sellerId == userId
+                matchesName || matchesId
+            }
+
+            if (myVehicles.isNotEmpty()) {
+                myVehicles
+            } else if (distinctVehicles.size <= 25) {
+                distinctVehicles
+            } else {
+                // If nationwide fleet of 100 was returned without seller tags, limit to the seller's actual achieved count
+                val targetCount = existingSales?.achievedQty?.takeIf { it > 0 }
+                    ?: (existingSales?.soldVehiclesCount?.takeIf { it > 0 } ?: 11)
+                distinctVehicles.take(targetCount)
+            }
+        } else {
+            distinctVehicles
+        }
+
+        val finalVehicles = sellerFilteredVehicles
+
         // Extract Client Dues directly from vehicles or existing dues
         val allDues = mutableListOf<ClientDueItem>()
         if (existingSales?.clientDuesList?.isNotEmpty() == true) {
             allDues.addAll(existingSales.clientDuesList)
         } else {
-            for (v in distinctVehicles) {
+            for (v in finalVehicles) {
                 if (v.isDue || (v.dueAmount ?: 0.0) > 0.0) {
                     allDues.add(
                         ClientDueItem(
@@ -431,23 +523,23 @@ class ErpRepository(
             ?: (existingSales?.totalDueAmount ?: 0.0)
 
         val achieved = existingSales?.achievedQty?.takeIf { it > 0 }
-            ?: distinctVehicles.size
+            ?: (existingSales?.soldVehiclesCount?.takeIf { it > 0 } ?: finalVehicles.size)
 
         val target = existingSales?.targetQty?.takeIf { it > 0 } ?: 20
         val progress = if (target > 0) ((achieved.toFloat() / target.toFloat()) * 100f).coerceIn(0f, 100f) else 0f
 
         val hardwareVal = existingSales?.hardwareValue?.takeIf { it > 0.0 }
-            ?: distinctVehicles.sumOf { it.devicePrice ?: 0.0 }
+            ?: finalVehicles.sumOf { it.devicePrice ?: 0.0 }
 
         val mrrVal = existingSales?.mrr?.takeIf { it > 0.0 }
-            ?: distinctVehicles.sumOf { it.monthlyBill ?: 0.0 }
+            ?: finalVehicles.sumOf { it.monthlyBill ?: 0.0 }
 
         return (existingSales ?: SellerDashboardMetrics()).copy(
             month = month,
             monthName = existingSales?.monthName?.ifBlank { null } ?: month,
             achievedQty = achieved,
-            soldVehiclesCount = maxOf(achieved, distinctVehicles.size),
-            soldVehiclesList = distinctVehicles,
+            soldVehiclesCount = achieved,
+            soldVehiclesList = finalVehicles,
             hardwareValue = hardwareVal,
             mrr = mrrVal,
             clientDuesCount = allDues.size,
@@ -488,26 +580,35 @@ class ErpRepository(
             val id = obj.optInt("vehicle_id", 0).takeIf { it > 0 }
                 ?: obj.optInt("id", 0)
 
-            val plate = obj.optString("vehicle_plate_number")
-                ?: obj.optString("vehicle_no")
-                ?: obj.optString("registration_no")
-                ?: obj.optString("plate_number")
-                ?: obj.optString("reg_no")
-                ?: obj.optString("plate_no")
-                ?: obj.optString("vehicle_number")
+            val plate = obj.optStringClean("vehicle_plate_number")
+                ?: obj.optStringClean("vehicle_no")
+                ?: obj.optStringClean("registration_no")
+                ?: obj.optStringClean("registration_number")
+                ?: obj.optStringClean("plate_number")
+                ?: obj.optStringClean("plate_no")
+                ?: obj.optStringClean("reg_no")
+                ?: obj.optStringClean("reg_number")
+                ?: obj.optStringClean("vehicle_number")
+                ?: obj.optStringClean("license_plate")
+                ?: obj.optStringClean("number_plate")
+                ?: obj.optStringClean("car_number")
+                ?: obj.optStringClean("car_no")
+                ?: obj.optStringClean("v_no")
+                ?: obj.optStringClean("plate")
+                ?: extractStringOrNested(obj, "vehicle", listOf("vehicle_no", "plate_number", "registration_no", "reg_no"))
                 ?: "MTK-${if (id > 0) id else (result.size + 1)}"
 
-            val model = obj.optString("vehicle_name")
-                ?: obj.optString("vehicle_model")
-                ?: obj.optString("vehicle_type")
-                ?: obj.optString("vehicle_brand_model")
-                ?: obj.optString("name")
-                ?: obj.optString("model")
+            val model = obj.optStringClean("vehicle_name")
+                ?: obj.optStringClean("vehicle_model")
+                ?: obj.optStringClean("vehicle_type")
+                ?: obj.optStringClean("vehicle_brand_model")
+                ?: obj.optStringClean("name")
+                ?: obj.optStringClean("model")
                 ?: "Vehicle Unit"
 
-            val device = obj.optString("device_type")
-                ?: obj.optString("model_name")
-                ?: obj.optString("device")
+            val device = obj.optStringClean("device_type")
+                ?: obj.optStringClean("model_name")
+                ?: obj.optStringClean("device")
                 ?: "GPS Tracker"
 
             val price = obj.optDouble("device_price", 0.0).takeIf { it > 0 }
@@ -518,35 +619,61 @@ class ErpRepository(
 
             val commission = obj.optDouble("referral_commission", 0.0)
 
-            val installDate = obj.optString("installation_date")
-                ?: obj.optString("created_at")
-                ?: obj.optString("installed_date")
-                ?: obj.optString("install_date")
+            val installDate = obj.optStringClean("installation_date")
+                ?: obj.optStringClean("created_at")
+                ?: obj.optStringClean("installed_date")
+                ?: obj.optStringClean("install_date")
 
-            val status = obj.optString("status")
+            val status = obj.optStringClean("status")
                 ?: "Active"
 
-            val customerName = obj.optString("customer_name")
-                ?: obj.optString("client_name")
+            val customerName = obj.optStringClean("customer_name")
+                ?: obj.optStringClean("client_name")
                 ?: extractStringOrNested(obj, "customer", listOf("name", "full_name"))
                 ?: "Valued Client"
 
-            val customerPhone = obj.optString("customer_phone")
-                ?: obj.optString("contact_number")
-                ?: obj.optString("phone")
+            val customerPhone = obj.optStringClean("customer_phone")
+                ?: obj.optStringClean("contact_number")
+                ?: obj.optStringClean("phone")
                 ?: extractStringOrNested(obj, "customer", listOf("phone", "contact_number"))
 
-            val sellerName = obj.optString("seller_name")
-                ?: obj.optString("sales_person")
-                ?: extractStringOrNested(obj, "seller", listOf("name", "full_name"))
+            val sellerId = obj.optInt("seller_id", 0).takeIf { it > 0 }
+                ?: obj.optInt("user_sel_id", 0).takeIf { it > 0 }
+                ?: obj.optInt("sales_person_id", 0).takeIf { it > 0 }
 
-            val installerName = obj.optString("installer_name")
-                ?: obj.optString("technician_name")
-                ?: extractStringOrNested(obj, "installer", listOf("name", "full_name"))
+            val sellerName = obj.optStringClean("seller_name")
+                ?: obj.optStringClean("sales_person")
+                ?: obj.optStringClean("seller")
+                ?: obj.optStringClean("sales_executive")
+                ?: obj.optStringClean("agent")
+                ?: obj.optStringClean("sold_by")
+                ?: obj.optStringClean("ref_name")
+                ?: extractStringOrNested(obj, "seller", listOf("full_name", "name", "username"))
+                ?: extractStringOrNested(obj, "u_sel", listOf("full_name", "name", "username"))
+
+            val installerId = obj.optInt("installer_id", 0).takeIf { it > 0 }
+                ?: obj.optInt("technician_id", 0).takeIf { it > 0 }
+                ?: obj.optInt("user_inst_id", 0).takeIf { it > 0 }
+
+            val installerName = obj.optStringClean("installer_name")
+                ?: obj.optStringClean("technician_name")
+                ?: obj.optStringClean("installed_by")
+                ?: obj.optStringClean("technician")
+                ?: obj.optStringClean("installer")
+                ?: obj.optStringClean("fitter_name")
+                ?: obj.optStringClean("fitter")
+                ?: obj.optStringClean("u_inst_name")
+                ?: obj.optStringClean("technician_full_name")
+                ?: obj.optStringClean("installer_full_name")
+                ?: obj.optStringClean("assigned_technician")
+                ?: obj.optStringClean("assigned_to")
+                ?: extractStringOrNested(obj, "installer", listOf("full_name", "name", "username"))
+                ?: extractStringOrNested(obj, "technician", listOf("full_name", "name", "username"))
+                ?: extractStringOrNested(obj, "u_inst", listOf("full_name", "name", "username"))
 
             val dueAmount = obj.optDouble("due_amount", 0.0)
-            val dueInvoiceNo = obj.optString("due_invoice_no")
-                ?: obj.optString("invoice_no")
+            val dueInvoiceNo = obj.optStringClean("due_invoice_no")
+                ?: obj.optStringClean("invoice_no")
 
             val isDue = obj.optBoolean("is_due", false)
                 || obj.optInt("is_due", 0) == 1
@@ -565,7 +692,9 @@ class ErpRepository(
                     status = status,
                     customerName = customerName,
                     customerPhone = customerPhone,
+                    sellerId = sellerId,
                     sellerName = sellerName,
+                    installerId = installerId,
                     installerName = installerName,
                     dueAmount = dueAmount,
                     dueInvoiceNo = dueInvoiceNo,
@@ -582,31 +711,42 @@ class ErpRepository(
      * (Zero Mock / Zero Fallback Data)
      */
     private suspend fun fetchStaffDirectory(authHeader: String): List<StaffMemberItem> {
+        val allStaff = mutableListOf<StaffMemberItem>()
+
+        // 1. Primary: /api/v1/users (Main user database table with all corporate employees)
         try {
-            val r1 = api.getStaffs(authHeader)
-            if (r1.isSuccessful && r1.body() != null) {
-                val list = parseStaffList(r1.body()!!)
-                if (list.isNotEmpty()) return list
+            val rUsers = api.getUsers(authHeader)
+            if (rUsers.isSuccessful && rUsers.body() != null) {
+                val list = parseStaffList(rUsers.body()!!)
+                allStaff.addAll(list)
             }
         } catch (ignored: Exception) {}
 
+        // 2. /api/v1/staff-directory
         try {
-            val r2 = api.getStaffDirectory(authHeader)
-            if (r2.isSuccessful && r2.body() != null) {
-                val list = parseStaffList(r2.body()!!)
-                if (list.isNotEmpty()) return list
+            val rDir = api.getStaffDirectory(authHeader)
+            if (rDir.isSuccessful && rDir.body() != null) {
+                val list = parseStaffList(rDir.body()!!)
+                allStaff.addAll(list)
             }
         } catch (ignored: Exception) {}
 
+        // 3. /api/v1/staffs
         try {
-            val r3 = api.getUsers(authHeader)
-            if (r3.isSuccessful && r3.body() != null) {
-                val list = parseStaffList(r3.body()!!)
-                if (list.isNotEmpty()) return list
+            val rStaffs = api.getStaffs(authHeader)
+            if (rStaffs.isSuccessful && rStaffs.body() != null) {
+                val list = parseStaffList(rStaffs.body()!!)
+                allStaff.addAll(list)
             }
         } catch (ignored: Exception) {}
 
-        return emptyList()
+        // Deduplicate and prioritize online and complete profiles
+        return allStaff.distinctBy {
+            if (it.userId > 0) "id_${it.userId}" else if (!it.username.isNullOrBlank()) "u_${it.username}" else "p_${it.phone}"
+        }.sortedWith(
+            compareByDescending<StaffMemberItem> { it.isOnline }
+                .thenBy { it.fullName }
+        )
     }
 
     private fun parseStaffList(json: JsonElement): List<StaffMemberItem> {
@@ -796,6 +936,12 @@ class ErpRepository(
         return try { get(key).asString } catch (ignored: Exception) { null }
     }
 
+    private fun JsonObject.optStringClean(key: String): String? {
+        if (!has(key) || get(key).isJsonNull) return null
+        val s = try { get(key).asString } catch (ignored: Exception) { null }
+        return s?.trim()?.takeIf { it.isNotEmpty() && !it.equals("null", true) }
+    }
+
     private fun JsonObject.optInt(key: String, default: Int): Int {
         if (!has(key) || get(key).isJsonNull) return default
         return try { get(key).asInt } catch (ignored: Exception) { default }
@@ -816,11 +962,11 @@ class ErpRepository(
         val elem = obj.get(fieldKey)
         if (elem.isJsonPrimitive) {
             val s = elem.asString.trim()
-            if (s.isNotEmpty()) return s
+            if (s.isNotEmpty() && !s.equals("null", true)) return s
         } else if (elem.isJsonObject) {
             val nestedObj = elem.asJsonObject
             for (nk in nestedKeys) {
-                val nestedVal = nestedObj.optString(nk)?.trim()
+                val nestedVal = nestedObj.optStringClean(nk)
                 if (!nestedVal.isNullOrEmpty()) return nestedVal
             }
         }

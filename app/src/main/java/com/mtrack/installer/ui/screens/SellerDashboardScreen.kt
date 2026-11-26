@@ -811,16 +811,35 @@ private fun ModernSoldVehicleRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
-                    Text(
-                        text = vehicle.vehiclePlateNumber,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = TextPrimary,
-                            fontSize = 12.sp
-                        )
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Surface(
+                        color = SlateNavyDark,
+                        shape = RoundedCornerShape(6.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF334155))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(EmeraldSuccess)
+                            )
+                            Text(
+                                text = vehicle.vehiclePlateNumber.ifBlank { "REG PENDING" },
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color.White,
+                                    fontSize = 11.5.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            )
+                        }
+                    }
                     Text(
                         text = "Installed: ${vehicle.installationDate ?: "N/A"}",
                         style = MaterialTheme.typography.labelSmall.copy(color = TextMuted, fontSize = 10.sp)
@@ -861,12 +880,18 @@ private fun ModernSoldVehicleRow(
                         )
                     }
 
-                    val installer = vehicle.installerName?.ifBlank { null } ?: "Technician"
+                    val installer = vehicle.installerName?.trim()?.takeIf {
+                        it.isNotEmpty() && !it.equals("Technician", true) && !it.equals("null", true)
+                    } ?: "Unassigned"
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Icon(imageVector = Icons.Outlined.Build, contentDescription = null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                        Icon(imageVector = Icons.Outlined.Build, contentDescription = null, tint = BrandBluePrimary, modifier = Modifier.size(13.dp))
                         Text(
-                            text = "Installer: $installer",
-                            style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Normal)
+                            text = "Technician: $installer",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = if (installer == "Unassigned") TextMuted else TextPrimary,
+                                fontSize = 11.sp,
+                                fontWeight = if (installer == "Unassigned") FontWeight.Normal else FontWeight.Medium
+                            )
                         )
                     }
                 }

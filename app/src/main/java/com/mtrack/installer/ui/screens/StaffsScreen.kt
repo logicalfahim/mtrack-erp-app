@@ -362,7 +362,11 @@ private fun StaffMemberCardItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     val initials = staff.fullName.split(" ").mapNotNull { it.firstOrNull()?.toString() }.take(2).joinToString("").uppercase()
                     val isOnline = staff.isOnline
 
@@ -401,14 +405,18 @@ private fun StaffMemberCardItem(
                         }
                     }
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
                         Text(
                             text = staff.fullName,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold, color = TextPrimary),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                         Text(
                             text = "${staff.designation ?: "Staff"} • ${staff.department ?: "Operations"}",
-                            style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontSize = 11.sp)
+                            style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary, fontSize = 11.sp),
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -519,94 +527,98 @@ private fun StaffMemberCardItem(
                 }
             }
 
-            // Row 3: Action Buttons (1-Click Direct Call & WhatsApp)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (!staff.phone.isNullOrBlank()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        // SMS Button
-                        OutlinedButton(
-                            onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("sms:${staff.phone}"))
-                                context.startActivity(intent)
-                            },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 5.dp),
-                            modifier = Modifier.height(34.dp),
-                            border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+            // Row 3: Action Buttons (Equal-width responsive 1-Click Direct SMS, WhatsApp & Call)
+            if (!staff.phone.isNullOrBlank()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // SMS Button
+                    OutlinedButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("sms:${staff.phone}"))
+                            context.startActivity(intent)
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp),
+                        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(imageVector = Icons.Outlined.Message, contentDescription = null, tint = BrandBluePrimary, modifier = Modifier.size(13.dp))
-                                Text(
-                                    text = "SMS",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = TextPrimary,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 11.sp
-                                    )
+                            Icon(imageVector = Icons.Outlined.Message, contentDescription = null, tint = BrandBluePrimary, modifier = Modifier.size(13.dp))
+                            Text(
+                                text = "SMS",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = TextPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 11.sp
                                 )
-                            }
+                            )
                         }
+                    }
 
-                        // WhatsApp Button
-                        OutlinedButton(
-                            onClick = {
-                                val clean = staff.phone.replace("+", "").replace("-", "").replace(" ", "")
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$clean"))
-                                context.startActivity(intent)
-                            },
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 5.dp),
-                            modifier = Modifier.height(34.dp),
-                            border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+                    // WhatsApp Button
+                    OutlinedButton(
+                        onClick = {
+                            val clean = staff.phone.replace("+", "").replace("-", "").replace(" ", "")
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$clean"))
+                            context.startActivity(intent)
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp),
+                        border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(BorderSubtle))
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(imageVector = Icons.Outlined.Chat, contentDescription = null, tint = EmeraldSuccess, modifier = Modifier.size(13.dp))
-                                Text(
-                                    text = "WhatsApp",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = TextPrimary,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 11.sp
-                                    )
+                            Icon(imageVector = Icons.Outlined.Chat, contentDescription = null, tint = EmeraldSuccess, modifier = Modifier.size(13.dp))
+                            Text(
+                                text = "WhatsApp",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = TextPrimary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 10.5.sp
                                 )
-                            }
+                            )
                         }
+                    }
 
-                        // Call Button
-                        Button(
-                            onClick = {
-                                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${staff.phone}"))
-                                context.startActivity(intent)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = BrandBluePrimary),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 11.dp, vertical = 5.dp),
-                            modifier = Modifier.height(34.dp)
+                    // Call Button
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${staff.phone}"))
+                            context.startActivity(intent)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandBluePrimary),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(34.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(imageVector = Icons.Outlined.Phone, contentDescription = null, tint = CardBackground, modifier = Modifier.size(13.dp))
-                                Text(
-                                    text = "Call",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = CardBackground,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 11.sp
-                                    )
+                            Icon(imageVector = Icons.Outlined.Phone, contentDescription = null, tint = CardBackground, modifier = Modifier.size(13.dp))
+                            Text(
+                                text = "Call",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    color = CardBackground,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 11.sp
                                 )
-                            }
+                            )
                         }
                     }
                 }

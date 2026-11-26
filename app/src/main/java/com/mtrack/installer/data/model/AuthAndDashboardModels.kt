@@ -138,8 +138,14 @@ data class SoldVehicleItem(
     @SerializedName("due_invoice_no", alternate = ["invoice_no", "invoice_number"])
     val dueInvoiceNo: String? = null,
 
+    @SerializedName("seller_id", alternate = ["user_sel_id", "sales_person_id"])
+    val sellerId: Int? = null,
+
     @SerializedName("seller_name", alternate = ["seller", "sales_person", "sales_executive", "agent", "sold_by", "ref_name"])
     val sellerName: String? = null,
+
+    @SerializedName("installer_id", alternate = ["technician_id", "user_inst_id"])
+    val installerId: Int? = null,
 
     @SerializedName("installer_name", alternate = ["installer", "technician", "technician_name", "installed_by", "fitter"])
     val installerName: String? = null,

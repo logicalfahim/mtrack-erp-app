@@ -26,7 +26,8 @@ import com.mtrack.installer.ui.viewmodel.InstallViewModel
 @Composable
 fun SuccessScreen(
     batchId: String,
-    viewModel: InstallViewModel
+    viewModel: InstallViewModel,
+    onReturnToDashboard: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
 
@@ -143,6 +144,24 @@ fun SuccessScreen(
                         text = "New Installation Request",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium)
                     )
+                }
+
+                if (onReturnToDashboard != null) {
+                    TextButton(
+                        onClick = {
+                            viewModel.resetForm()
+                            onReturnToDashboard()
+                        },
+                        modifier = Modifier.fillMaxWidth().height(44.dp)
+                    ) {
+                        Text(
+                            text = "Back to ERP Dashboard",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                color = BrandBluePrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
                 }
             }
         }
