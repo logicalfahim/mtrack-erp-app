@@ -2,13 +2,15 @@ name: Inspect Sagor Sales
 on:
   workflow_dispatch:
 
+permissions: write-all
+
 jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
       - name: Fetch and Analyze Sagor Records
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 - << 'EOF'
           import urllib.request, json, os, subprocess
@@ -37,27 +39,19 @@ jobs:
               if 'sagor' in dump:
                   sagor_items.append(it)
 
-          print("\n=== All ref_name counts ===")
-          for k, v in sorted(ref_counts.items(), key=lambda x: x[1], reverse=True):
-              print(f"  {k}: {v}")
+          report = f"### Sagor Sales Inspection Report\n"
+          report += f"**Total Install Requests:** {len(items)}\n"
+          report += f"**Sagor matches:** {len(sagor_items)}\n\n"
 
-          print(f"\n=== Sagor Items Found: {len(sagor_items)} ===")
-          for idx, it in enumerate(sagor_items):
-              print(f"[{idx+1}] ID={it.get('id')} Reg={it.get('registration_no')} Model={it.get('vehicle_brand_model')} Ref={it.get('ref_name')} Date={it.get('pref_date_time')} Created={it.get('created_at')}")
-
-          report = f"""### Sagor Sales Inspection Report
-          **Total Install Requests:** {len(items)}
-          **Sagor matches:** {len(sagor_items)}
-
-          #### ref_name counts:
-          ```
-          """
+          report += "#### ref_name counts:\n```\n"
           for k, v in sorted(ref_counts.items(), key=lambda x: x[1], reverse=True):
               report += f"{k}: {v}\n"
-          report += "```\n"
+          report += "```\n\n"
 
           if sagor_items:
-              report += "#### Sagor sample item:\n```json\n" + json.dumps(sagor_items[0], indent=2, ensure_ascii=False) + "\n```"
+              report += f"#### Sagor items ({len(sagor_items)}):\n```json\n"
+              report += json.dumps(sagor_items, indent=2, ensure_ascii=False)
+              report += "\n```\n"
 
-          subprocess.run(['gh', 'issue', 'create', '--repo', 'logicalfahim/mtrack-erp-app', '--title', 'Sagor Inspection Data', '--body', report])
+          subprocess.run(['gh', 'issue', 'create', '--repo', 'logicalfahim/mtrack-erp-app', '--title', 'Sagor Inspection Data Result', '--body', report], check=True)
           EOF
