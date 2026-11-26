@@ -9,19 +9,25 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch API responses
+      - name: Fetch API responses with headers
         run: |
-          echo "### ERP API Inspection Report" > api_report.txt
-          echo '```json' >> api_report.txt
-          echo "=== GET /api/v1/erp-dashboard ===" >> api_report.txt
-          curl -sL -m 15 -H "Accept: application/json" -H "User-Agent: MTrackApp/1.0" "https://erp.mtrack.com.bd/api/v1/erp-dashboard" | head -c 30000 >> api_report.txt || echo "Failed" >> api_report.txt
-          echo "" >> api_report.txt
-          echo "=== GET /api/v1/vehiclesvehicles ===" >> api_report.txt
-          curl -sL -m 15 -H "Accept: application/json" -H "User-Agent: MTrackApp/1.0" "https://erp.mtrack.com.bd/api/v1/vehiclesvehicles" | head -c 30000 >> api_report.txt || echo "Failed" >> api_report.txt
-          echo "" >> api_report.txt
-          echo "=== GET /api/v1/vehicles ===" >> api_report.txt
-          curl -sL -m 15 -H "Accept: application/json" -H "User-Agent: MTrackApp/1.0" "https://erp.mtrack.com.bd/api/v1/vehicles" | head -c 30000 >> api_report.txt || echo "Failed" >> api_report.txt
-          echo '```' >> api_report.txt
-          gh issue create --title "ERP API Inspection Data" --body-file api_report.txt --repo logicalfahim/mtrack-erp-app
+          echo "### ERP Endpoints Inspection" > report.txt
+          echo '```' >> report.txt
+          echo "=== 1. GET /api/v1/erp-dashboard ===" >> report.txt
+          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/erp-dashboard" | head -n 35 >> report.txt || true
+          echo "" >> report.txt
+          echo "=== 2. GET /api/v1/vehicles ===" >> report.txt
+          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/vehicles" | head -n 35 >> report.txt || true
+          echo "" >> report.txt
+          echo "=== 3. GET /api/v1/install-requests ===" >> report.txt
+          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/install-requests" | head -n 35 >> report.txt || true
+          echo "" >> report.txt
+          echo "=== 4. GET /api/v1/staffs ===" >> report.txt
+          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/staffs" | head -n 35 >> report.txt || true
+          echo "" >> report.txt
+          echo "=== 5. GET /api/v1/dashboard ===" >> report.txt
+          curl -s -i -m 10 "https://erp.mtrack.com.bd/api/v1/dashboard" | head -n 35 >> report.txt || true
+          echo '```' >> report.txt
+          gh issue create --title "ERP Status and Headers Report" --body-file report.txt --repo logicalfahim/mtrack-erp-app
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
