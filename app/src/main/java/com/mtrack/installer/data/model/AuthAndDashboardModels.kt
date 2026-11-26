@@ -117,6 +117,9 @@ data class SoldVehicleItem(
     @SerializedName("monthly_bill", alternate = ["bill", "monthly_service_charge", "service_charge", "monthly_charge", "monthly_fee"])
     val monthlyBill: Double? = 0.0,
 
+    @SerializedName("referral_commission", alternate = ["commission"])
+    val referralCommission: Double? = 0.0,
+
     @SerializedName("installation_date", alternate = ["install_date", "date", "created_at"])
     val installationDate: String? = null,
 

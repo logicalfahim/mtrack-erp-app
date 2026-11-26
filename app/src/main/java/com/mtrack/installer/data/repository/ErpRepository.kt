@@ -344,7 +344,9 @@ class ErpRepository(
                     bearerToken = authHeader,
                     sellerId = sellerId,
                     seller = sellerUsername,
-                    month = month
+                    refName = null,
+                    month = month,
+                    limit = 100
                 )
                 if (vehiclesResp.isSuccessful && vehiclesResp.body() != null) {
                     val parsed = parseVehiclesArray(vehiclesResp.body()!!)
@@ -357,7 +359,14 @@ class ErpRepository(
             // Try general /api/v1/vehicles?month=YYYY-MM if seller-filtered was empty
             if (serverVehicles.isEmpty()) {
                 try {
-                    val generalResp = api.getVehicles(bearerToken = authHeader, month = month)
+                    val generalResp = api.getVehicles(
+                        bearerToken = authHeader,
+                        sellerId = null,
+                        seller = null,
+                        refName = null,
+                        month = month,
+                        limit = 100
+                    )
                     if (generalResp.isSuccessful && generalResp.body() != null) {
                         val parsed = parseVehiclesArray(generalResp.body()!!)
                         if (parsed.isNotEmpty()) {
@@ -371,7 +380,12 @@ class ErpRepository(
         // 3. Query /api/v1/sales if still empty
         if (serverVehicles.isEmpty()) {
             try {
-                val salesResp = api.getSales(bearerToken = authHeader, month = month)
+                val salesResp = api.getSales(
+                    bearerToken = authHeader,
+                    month = month,
+                    seller = null,
+                    refName = null
+                )
                 if (salesResp.isSuccessful && salesResp.body() != null) {
                     val parsed = parseSalesPayload(salesResp.body()!!)
                     if (parsed != null && parsed.soldVehiclesList.isNotEmpty()) {
