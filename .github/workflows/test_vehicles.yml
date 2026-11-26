@@ -1,0 +1,24 @@
+name: Test Vehicles Endpoints
+
+on:
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  test-vehicles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test various vehicle endpoints
+        run: |
+          echo "### Testing Vehicles Endpoints" > report.txt
+          echo '```' >> report.txt
+          for ep in "vehicles" "vehiclesvehicles" "vehicles/vehicles" "vehicle" "vehicles-list" "installed-vehicles" "installations" "fleet" "all-vehicles"; do
+            echo "--- GET /api/v1/$ep ---" >> report.txt
+            curl -s -i -m 5 "https://erp.mtrack.com.bd/api/v1/$ep" | head -n 15 >> report.txt || true
+            echo "" >> report.txt
+          done
+          echo '```' >> report.txt
+          gh issue create --title "Vehicles Endpoints Test" --body-file report.txt --repo logicalfahim/mtrack-erp-app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
