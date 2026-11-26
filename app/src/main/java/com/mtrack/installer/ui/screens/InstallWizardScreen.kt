@@ -31,47 +31,54 @@ fun InstallWizardScreen(
     val state by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(SurfaceBackground)
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Step Indicator Progress Header
-        StepIndicatorHeader(currentStep = state.currentStep)
+    if (state.currentStep == 5) {
+        SuccessScreen(
+            batchId = state.submittedBatchId ?: "MTK-${System.currentTimeMillis() % 100000}",
+            viewModel = viewModel
+        )
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(SurfaceBackground)
+                .verticalScroll(scrollState)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Step Indicator Progress Header
+            StepIndicatorHeader(currentStep = state.currentStep)
 
-        // Error Banner if any
-        if (state.errorMessage != null) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = RoseBg),
-                border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(RoseError.copy(alpha = 0.3f))),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Error Banner if any
+            if (state.errorMessage != null) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = RoseBg),
+                    border = CardDefaults.outlinedCardBorder().copy(brush = androidx.compose.ui.graphics.SolidColor(RoseError.copy(alpha = 0.3f))),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(imageVector = Icons.Outlined.ErrorOutline, contentDescription = null, tint = RoseError, modifier = Modifier.size(18.dp))
-                    Text(
-                        text = state.errorMessage ?: "",
-                        style = MaterialTheme.typography.bodySmall.copy(color = RoseError, fontWeight = FontWeight.Medium)
-                    )
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Outlined.ErrorOutline, contentDescription = null, tint = RoseError, modifier = Modifier.size(18.dp))
+                        Text(
+                            text = state.errorMessage ?: "",
+                            style = MaterialTheme.typography.bodySmall.copy(color = RoseError, fontWeight = FontWeight.Medium)
+                        )
+                    }
                 }
             }
-        }
 
-        // Dynamic Wizard Body Based on Step
-        when (state.currentStep) {
-            1 -> Step1CustomerDetails(state, viewModel)
-            2 -> Step2VehiclesFleet(state, viewModel)
-            3 -> Step3ScheduleLocation(state, viewModel)
-            4 -> Step4ReviewAndSubmit(state, viewModel)
-        }
+            // Dynamic Wizard Body Based on Step
+            when (state.currentStep) {
+                1 -> Step1CustomerDetails(state, viewModel)
+                2 -> Step2VehiclesFleet(state, viewModel)
+                3 -> Step3ScheduleLocation(state, viewModel)
+                4 -> Step4ReviewAndSubmit(state, viewModel)
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 

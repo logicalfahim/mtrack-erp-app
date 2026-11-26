@@ -252,6 +252,16 @@ fun AppDrawer(
                 )
 
                 DrawerMenuItem(
+                    title = "New Installation Form",
+                    icon = Icons.Outlined.AddCircleOutline,
+                    isSelected = currentRoute == "install",
+                    onClick = {
+                        onNavigate("install")
+                        onCloseDrawer()
+                    }
+                )
+
+                DrawerMenuItem(
                     title = if (isAdmin) "Enterprise Fleet & Dues" else "Sold Fleet Portfolio",
                     icon = Icons.Outlined.DirectionsCar,
                     isSelected = currentRoute == "fleet",

@@ -16,7 +16,12 @@ class SessionManager(context: Context) {
         private const val KEY_USER_JSON = "user_profile_json"
     }
 
+    init {
+        getToken()?.let { com.mtrack.installer.data.api.RetrofitClient.setAuthToken(it) }
+    }
+
     fun saveAuth(token: String, user: UserProfile) {
+        com.mtrack.installer.data.api.RetrofitClient.setAuthToken(token)
         prefs.edit()
             .putString(KEY_TOKEN, token)
             .putString(KEY_USER_JSON, gson.toJson(user))
@@ -45,6 +50,7 @@ class SessionManager(context: Context) {
     fun isLoggedIn(): Boolean = !getToken().isNullOrBlank()
 
     fun logout() {
+        com.mtrack.installer.data.api.RetrofitClient.setAuthToken(null)
         prefs.edit().clear().apply()
     }
 }

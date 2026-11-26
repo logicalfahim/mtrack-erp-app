@@ -153,6 +153,7 @@ class MainActivity : ComponentActivity() {
                                                     val headerTitle = when (currentRoute) {
                                                         "dashboard"    -> if (isAdmin) "M ERP Admin" else "M ERP"
                                                         "staffs"       -> "Staffs Directory"
+                                                        "install"      -> "New Installation"
                                                         "fleet"        -> if (isAdmin) "Enterprise Fleet" else "Sold Fleet"
                                                         "profile"      -> if (isAdmin) "Administrator Profile" else "Executive Profile"
                                                         "profile_edit" -> "Edit Profile"
@@ -162,6 +163,7 @@ class MainActivity : ComponentActivity() {
                                                     val headerSubtitle = when (currentRoute) {
                                                         "dashboard"    -> if (isAdmin) "Executive Command Center" else "Sales Operations Hub"
                                                         "staffs"       -> "Live Active Colleagues"
+                                                        "install"      -> "Vehicle Onboarding Form"
                                                         "fleet"        -> if (isAdmin) "Fleet Telematics & Invoices" else "Deliveries & Dues Pacing"
                                                         "profile"      -> authState.currentUser?.fullName ?: (if (isAdmin) "System Administrator" else "Staff Identity")
                                                         "profile_edit" -> "Personal & Security Details"
@@ -315,7 +317,42 @@ class MainActivity : ComponentActivity() {
                                             )
                                         )
 
-                                        // 3. Fleet
+                                        // 3. Center Elevated Action: Install Request Form
+                                        NavigationBarItem(
+                                            selected = currentRoute == "install",
+                                            onClick = { currentRoute = "install" },
+                                            icon = {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(42.dp)
+                                                        .clip(RoundedCornerShape(14.dp))
+                                                        .background(BrandBluePrimary),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.Add,
+                                                        contentDescription = "New Installation",
+                                                        tint = Color.White,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                            },
+                                            label = {
+                                                Text(
+                                                    text = "Install",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (currentRoute == "install") BrandBluePrimary else TextSecondary
+                                                )
+                                            },
+                                            colors = NavigationBarItemDefaults.colors(
+                                                selectedIconColor = Color.White,
+                                                selectedTextColor = BrandBluePrimary,
+                                                indicatorColor = Color.Transparent
+                                            )
+                                        )
+
+                                        // 4. Fleet
                                         NavigationBarItem(
                                             selected = currentRoute == "fleet",
                                             onClick = { currentRoute = "fleet" },
@@ -328,7 +365,7 @@ class MainActivity : ComponentActivity() {
                                             )
                                         )
 
-                                        // 4. Profile
+                                        // 5. Profile
                                         NavigationBarItem(
                                             selected = currentRoute == "profile" || currentRoute == "profile_edit",
                                             onClick = { currentRoute = "profile" },
@@ -351,12 +388,18 @@ class MainActivity : ComponentActivity() {
                                     when (currentRoute) {
                                         "dashboard" -> {
                                             SellerDashboardScreen(
-                                                dashboardViewModel = dashboardViewModel
+                                                dashboardViewModel = dashboardViewModel,
+                                                onNavigateToInstall = { currentRoute = "install" }
                                             )
                                         }
                                         "staffs" -> {
                                             StaffsScreen(
                                                 dashboardViewModel = dashboardViewModel
+                                            )
+                                        }
+                                        "install" -> {
+                                            InstallWizardScreen(
+                                                viewModel = installViewModel
                                             )
                                         }
                                         "fleet" -> {
@@ -387,7 +430,8 @@ class MainActivity : ComponentActivity() {
                                         }
                                         else -> {
                                             SellerDashboardScreen(
-                                                dashboardViewModel = dashboardViewModel
+                                                dashboardViewModel = dashboardViewModel,
+                                                onNavigateToInstall = { currentRoute = "install" }
                                             )
                                         }
                                     }
