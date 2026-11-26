@@ -9,6 +9,9 @@ data class VehicleItem(
     @SerializedName("vehicle_type")
     val vehicleType: String = "Car",
 
+    @SerializedName("bus_company")
+    val busCompany: String? = null,
+
     @SerializedName("vehicle_brand_model")
     val vehicleBrandModel: String = "",
 
@@ -16,20 +19,26 @@ data class VehicleItem(
     val registrationNo: String = "",
 
     @SerializedName("chassis_no")
-    val chassisNo: String = "",
+    val chassisNo: String? = null,
 
     @SerializedName("engine_no")
-    val engineNo: String = "",
+    val engineNo: String? = null,
+
+    @SerializedName("route_name")
+    val routeName: String? = null,
 
     @SerializedName("device_type")
-    val deviceType: String = "Voice", // Basic, Voice, Fuel, Dashcam
+    val deviceType: String = "Voice", // Voice, Non-Voice, Two Way Communication
+
+    @SerializedName("start_type")
+    val startType: String = "Key Start", // Key Start, Push Start
 
     @SerializedName("engine_cut")
-    val engineCut: String = "Yes"
+    val engineCut: String = "Yes" // Yes, No
 )
 
 /**
- * Full submission payload for /api/v1/install-requests
+ * Full submission payload for /api/v1/install-requests (Aligned with index.php DB schema)
  */
 data class InstallationRequestPayload(
     @SerializedName("full_name")
@@ -64,6 +73,9 @@ data class InstallationRequestPayload(
 
     @SerializedName("ref_phone")
     val refPhone: String? = null,
+
+    @SerializedName("ref_area")
+    val refArea: String? = null,
 
     @SerializedName("vehicles")
     val vehicles: List<VehicleItem>

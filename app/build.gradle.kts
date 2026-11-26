@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.activity.ktx)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -58,6 +59,7 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.google.gson)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.play.services.mlkit.text.recognition)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

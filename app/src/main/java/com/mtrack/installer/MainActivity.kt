@@ -398,9 +398,17 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
                                         "install" -> {
-                                            InstallWizardScreen(
-                                                viewModel = installViewModel
-                                            )
+                                            val installUiState by installViewModel.uiState.collectAsState()
+                                            if (installUiState.currentStep == 7) {
+                                                SuccessScreen(
+                                                    batchId = installUiState.submittedBatchId ?: "MTK-SUCCESS",
+                                                    viewModel = installViewModel
+                                                )
+                                            } else {
+                                                InstallWizardScreen(
+                                                    viewModel = installViewModel
+                                                )
+                                            }
                                         }
                                         "fleet" -> {
                                             FleetScreen(
