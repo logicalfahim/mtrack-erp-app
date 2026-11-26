@@ -8,50 +8,41 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch and Analyze Sagor Records
+      - name: Inspect ERP Endpoints
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 - << 'EOF'
-          import urllib.request, json, os, subprocess
+          import urllib.request, urllib.error, json, subprocess
 
-          url = 'https://erp.mtrack.com.bd/api/v1/install-requests?limit=100'
-          req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-          
-          try:
-              with urllib.request.urlopen(req) as resp:
-                  raw = resp.read().decode('utf-8')
-                  data = json.loads(raw)
-          except Exception as e:
-              print(f"Failed to fetch install-requests: {e}")
-              data = {}
+          endpoints = [
+              'api/v1/sales',
+              'api/v1/seller-dashboard',
+              'api/v1/erp-dashboard',
+              'api/v1/vehicles',
+              'api/v1/vehicles?seller=sagor',
+              'api/v1/sales?seller=sagor',
+              'api/v1/install-requests?ref_name=sagor',
+              'api/v1/install-requests?seller=sagor',
+              'api/v1/install-requests?limit=100'
+          ]
 
-          items = data.get('data') or data.get('requests') or []
-          print(f"Total install requests: {len(items)}")
+          report = "### Endpoint Probe Results\n\n"
 
-          ref_counts = {}
-          sagor_items = []
-          for it in items:
-              ref = str(it.get('ref_name') or 'None').strip()
-              ref_counts[ref] = ref_counts.get(ref, 0) + 1
-              
-              dump = json.dumps(it, ensure_ascii=False).lower()
-              if 'sagor' in dump:
-                  sagor_items.append(it)
+          for ep in endpoints:
+              url = f"https://erp.mtrack.com.bd/{ep}"
+              req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json'})
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      body = resp.read().decode('utf-8')
+                      code = resp.status
+                      snippet = body[:500]
+                      report += f"**`GET /{ep}`** -> `{code}`\n```json\n{snippet}\n```\n\n"
+              except urllib.error.HTTPError as e:
+                  err_body = e.read().decode('utf-8', errors='ignore')[:300]
+                  report += f"**`GET /{ep}`** -> `{e.code}`\n```json\n{err_body}\n```\n\n"
+              except Exception as e:
+                  report += f"**`GET /{ep}`** -> `Error: {e}`\n\n"
 
-          report = f"### Sagor Sales Inspection Report\n"
-          report += f"**Total Install Requests:** {len(items)}\n"
-          report += f"**Sagor matches:** {len(sagor_items)}\n\n"
-
-          report += "#### ref_name counts:\n```\n"
-          for k, v in sorted(ref_counts.items(), key=lambda x: x[1], reverse=True):
-              report += f"{k}: {v}\n"
-          report += "```\n\n"
-
-          if sagor_items:
-              report += f"#### Sagor items ({len(sagor_items)}):\n```json\n"
-              report += json.dumps(sagor_items, indent=2, ensure_ascii=False)
-              report += "\n```\n"
-
-          subprocess.run(['gh', 'issue', 'create', '--repo', 'logicalfahim/mtrack-erp-app', '--title', 'Sagor Inspection Data Result', '--body', report], check=True)
+          subprocess.run(['gh', 'issue', 'create', '--repo', 'logicalfahim/mtrack-erp-app', '--title', 'ERP Endpoint Probe Report', '--body', report], check=True)
           EOF
