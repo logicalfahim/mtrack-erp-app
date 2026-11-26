@@ -131,6 +131,7 @@ interface MTrackApiService {
     @GET("api/v1/vehicles")
     suspend fun getVehicles(
         @Header("Authorization") bearerToken: String,
+        @Query("seller_id") sellerId: Int? = null,
         @Query("seller") seller: String? = null,
         @Query("ref_name") refName: String? = null,
         @Query("month") month: String? = null,
@@ -138,8 +139,19 @@ interface MTrackApiService {
     ): Response<com.google.gson.JsonElement>
 
     /**
-     * Real-time notifications endpoints
+     * Real-time notifications endpoints per ERP specification
      */
+    @GET("api/notifications_check.php")
+    suspend fun getNotificationsCheck(
+        @Header("Authorization") bearerToken: String
+    ): Response<com.google.gson.JsonElement>
+
+    @POST("api/notifications_read_all.php")
+    suspend fun markAllNotificationsRead(
+        @Header("Authorization") bearerToken: String,
+        @Body body: Map<String, Int>
+    ): Response<com.google.gson.JsonElement>
+
     @GET("api/v1/notifications")
     suspend fun getNotifications(
         @Header("Authorization") bearerToken: String

@@ -110,6 +110,16 @@ class ErpRepository(
         }
     }
 
+    suspend fun markAllNotificationsRead(token: String, userId: Int): Boolean = withContext(Dispatchers.IO) {
+        val authHeader = if (token.startsWith("Bearer ")) token else "Bearer $token"
+        return@withContext try {
+            val response = api.markAllNotificationsRead(authHeader, mapOf("user_id" to userId))
+            response.isSuccessful
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     /**
      * Tries primary and alternative dashboard endpoints
      */
@@ -746,14 +756,26 @@ class ErpRepository(
         // 1. Try fetching remote notifications from ERP (if authenticated)
         if (authHeader != null) {
             try {
-                val r1 = api.getNotifications(authHeader)
-                if (r1.isSuccessful && r1.body() != null) {
-                    val parsed = parseNotificationsJson(r1.body()!!)
+                val r0 = api.getNotificationsCheck(authHeader)
+                if (r0.isSuccessful && r0.body() != null) {
+                    val parsed = parseNotificationsJson(r0.body()!!)
                     if (parsed.isNotEmpty()) {
                         remoteList.addAll(parsed)
                     }
                 }
             } catch (ignored: Exception) {}
+
+            if (remoteList.isEmpty()) {
+                try {
+                    val r1 = api.getNotifications(authHeader)
+                    if (r1.isSuccessful && r1.body() != null) {
+                        val parsed = parseNotificationsJson(r1.body()!!)
+                        if (parsed.isNotEmpty()) {
+                            remoteList.addAll(parsed)
+                        }
+                    }
+                } catch (ignored: Exception) {}
+            }
 
             if (remoteList.isEmpty()) {
                 try {

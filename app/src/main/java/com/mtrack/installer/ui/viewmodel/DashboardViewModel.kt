@@ -103,11 +103,20 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun markAllNotificationsAsRead() {
+    fun markAllNotificationsAsRead(token: String? = null, userId: Int? = null) {
         _uiState.update { state ->
             state.copy(
                 notifications = state.notifications.map { it.copy(isRead = true) }
             )
+        }
+        val resolvedToken = token ?: sessionManager.getToken()
+        val resolvedUserId = userId ?: _uiState.value.userProfile?.userId
+        if (!resolvedToken.isNullOrBlank() && resolvedUserId != null) {
+            viewModelScope.launch {
+                try {
+                    repository.markAllNotificationsRead(resolvedToken, resolvedUserId)
+                } catch (ignored: Exception) {}
+            }
         }
     }
 }

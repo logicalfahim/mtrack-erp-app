@@ -395,11 +395,24 @@ data class LocationUpdateResponse(
  * Enterprise Notification Item for Half-Drawer Sheet
  */
 data class StaffNotificationItem(
-    val id: String,
-    val title: String,
-    val message: String,
-    val category: String,
-    val timeAgo: String,
+    @SerializedName("id")
+    val id: String = "",
+
+    @SerializedName("title")
+    val title: String = "",
+
+    @SerializedName("message")
+    val message: String = "",
+
+    @SerializedName("category", alternate = ["cat", "dept"])
+    val category: String = "Alert",
+
+    @SerializedName("time_ago", alternate = ["time", "created_at", "timeAgo"])
+    val timeAgo: String = "Recently",
+
+    @SerializedName("is_read", alternate = ["read", "status"])
     val isRead: Boolean = false,
+
+    @SerializedName("type", alternate = ["alert_type", "level"])
     val type: String = "info"
 )
