@@ -59,25 +59,31 @@ class ErpRepository(
         }
     }
 
-    suspend fun getDashboard(token: String, month: String? = null): Result<DashboardResponse> {
+    suspend fun getDashboard(token: String?, month: String? = null): Result<DashboardResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                val authHeader = if (token.startsWith("Bearer ")) token else "Bearer $token"
+                val authHeader = if (!token.isNullOrBlank()) {
+                    if (token.startsWith("Bearer ")) token else "Bearer $token"
+                } else null
 
-                // 1. Fetch main dashboard with fallback endpoints
-                var dashResponse = fetchDashboardPayload(authHeader, month)
+                // 1. Fetch main dashboard with fallback endpoints (when authenticated)
+                var dashResponse = if (authHeader != null) {
+                    fetchDashboardPayload(authHeader, month)
+                } else {
+                    DashboardResponse(status = "success", code = 200, data = ErpDashboardData())
+                }
 
                 var currentData = dashResponse.data ?: ErpDashboardData()
 
-                // 2. Fallback for Staff Directory if empty in main response
-                if (currentData.staffDirectory.isEmpty()) {
+                // 2. Fallback for Staff Directory if empty in main response (requires authentication)
+                if (currentData.staffDirectory.isEmpty() && authHeader != null) {
                     val realStaff = fetchStaffDirectory(authHeader)
                     if (realStaff.isNotEmpty()) {
                         currentData = currentData.copy(staffDirectory = realStaff)
                     }
                 }
 
-                // 3. Fallback for Sales / Fleet Department if empty or missing
+                // 3. Fallback for Sales / Fleet Department (works WITH or WITHOUT login via /api/v1/install-requests)
                 val currentSales = currentData.salesDepartment
                 if (currentSales == null || (currentSales.soldVehiclesList.isEmpty() && currentSales.clientDuesList.isEmpty())) {
                     val realSales = fetchSalesAndFleetData(authHeader, month, currentSales)
@@ -86,7 +92,7 @@ class ErpRepository(
                     }
                 }
 
-                // 4. Real Enterprise Notifications (Fetch from server or synthesize from live data)
+                // 4. Real Enterprise Notifications (Server notifications or synthesized from live data)
                 val notifications = fetchOrSynthesizeNotifications(authHeader, currentData)
 
                 dashResponse = dashResponse.copy(
@@ -242,14 +248,14 @@ class ErpRepository(
      * Resiliently fetches sales, installation requests, and fleet data
      */
     private suspend fun fetchSalesAndFleetData(
-        authHeader: String,
+        authHeader: String?,
         month: String?,
         existingSales: SellerDashboardMetrics?
     ): SellerDashboardMetrics? {
         val allVehicles = mutableListOf<SoldVehicleItem>()
         val allDues = mutableListOf<ClientDueItem>()
 
-        // 1. Try /api/v1/install-requests (Primary ERP gateway in GEMINI.md)
+        // 1. Try /api/v1/install-requests (Works with or without login token)
         try {
             val installResp = api.getInstallRequests(authHeader, 100)
             if (installResp.isSuccessful && installResp.body() != null) {
@@ -259,24 +265,26 @@ class ErpRepository(
             }
         } catch (ignored: Exception) {}
 
-        // 2. Try /api/v1/sales
-        try {
-            val salesResp = api.getSales(authHeader, month)
-            if (salesResp.isSuccessful && salesResp.body() != null) {
-                val parsed = parseSalesPayload(salesResp.body()!!)
-                if (parsed != null) {
-                    if (parsed.soldVehiclesList.isNotEmpty()) {
-                        allVehicles.addAll(parsed.soldVehiclesList)
-                    }
-                    if (parsed.clientDuesList.isNotEmpty()) {
-                        allDues.addAll(parsed.clientDuesList)
+        // 2. Try /api/v1/sales (when authHeader is present)
+        if (authHeader != null) {
+            try {
+                val salesResp = api.getSales(authHeader, month)
+                if (salesResp.isSuccessful && salesResp.body() != null) {
+                    val parsed = parseSalesPayload(salesResp.body()!!)
+                    if (parsed != null) {
+                        if (parsed.soldVehiclesList.isNotEmpty()) {
+                            allVehicles.addAll(parsed.soldVehiclesList)
+                        }
+                        if (parsed.clientDuesList.isNotEmpty()) {
+                            allDues.addAll(parsed.clientDuesList)
+                        }
                     }
                 }
-            }
-        } catch (ignored: Exception) {}
+            } catch (ignored: Exception) {}
+        }
 
-        // 3. Try /api/v1/vehicles
-        if (allVehicles.isEmpty()) {
+        // 3. Try /api/v1/vehicles (when authHeader is present)
+        if (allVehicles.isEmpty() && authHeader != null) {
             try {
                 val vehiclesResp = api.getVehicles(authHeader)
                 if (vehiclesResp.isSuccessful && vehiclesResp.body() != null) {
@@ -453,32 +461,34 @@ class ErpRepository(
      * Fetches from server or dynamically synthesizes from actual live dues, fleet vehicles, and staff telematics
      */
     private suspend fun fetchOrSynthesizeNotifications(
-        authHeader: String,
+        authHeader: String?,
         dashboardData: ErpDashboardData
     ): List<StaffNotificationItem> {
         val remoteList = mutableListOf<StaffNotificationItem>()
 
-        // 1. Try fetching remote notifications from ERP
-        try {
-            val r1 = api.getNotifications(authHeader)
-            if (r1.isSuccessful && r1.body() != null) {
-                val parsed = parseNotificationsJson(r1.body()!!)
-                if (parsed.isNotEmpty()) {
-                    remoteList.addAll(parsed)
-                }
-            }
-        } catch (ignored: Exception) {}
-
-        if (remoteList.isEmpty()) {
+        // 1. Try fetching remote notifications from ERP (if authenticated)
+        if (authHeader != null) {
             try {
-                val r2 = api.getStaffNotifications(authHeader)
-                if (r2.isSuccessful && r2.body() != null) {
-                    val parsed = parseNotificationsJson(r2.body()!!)
+                val r1 = api.getNotifications(authHeader)
+                if (r1.isSuccessful && r1.body() != null) {
+                    val parsed = parseNotificationsJson(r1.body()!!)
                     if (parsed.isNotEmpty()) {
                         remoteList.addAll(parsed)
                     }
                 }
             } catch (ignored: Exception) {}
+
+            if (remoteList.isEmpty()) {
+                try {
+                    val r2 = api.getStaffNotifications(authHeader)
+                    if (r2.isSuccessful && r2.body() != null) {
+                        val parsed = parseNotificationsJson(r2.body()!!)
+                        if (parsed.isNotEmpty()) {
+                            remoteList.addAll(parsed)
+                        }
+                    }
+                } catch (ignored: Exception) {}
+            }
         }
 
         if (remoteList.isNotEmpty()) {

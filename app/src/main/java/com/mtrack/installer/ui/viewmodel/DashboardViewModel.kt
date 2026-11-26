@@ -56,7 +56,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun loadDashboard(month: String? = null) {
-        val token = sessionManager.getToken() ?: sessionManager.getAuthToken() ?: return
+        val token = sessionManager.getToken() ?: sessionManager.getAuthToken()
         val currentUser = sessionManager.getUser()
         _uiState.update {
             it.copy(
