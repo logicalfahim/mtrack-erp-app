@@ -424,6 +424,38 @@ private fun FleetWithDueCardItem(
                     }
                 }
             }
+
+            // Row 4: Seller & Installer Attribution
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    val seller = vehicle.sellerName?.ifBlank { null } ?: "Direct"
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(imageVector = Icons.Outlined.Person, contentDescription = null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                        Text(
+                            text = "Seller: $seller",
+                            style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Normal)
+                        )
+                    }
+
+                    val installer = vehicle.installerName?.ifBlank { null } ?: "Technician"
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Icon(imageVector = Icons.Outlined.Build, contentDescription = null, tint = TextMuted, modifier = Modifier.size(13.dp))
+                        Text(
+                            text = "Installer: $installer",
+                            style = MaterialTheme.typography.labelSmall.copy(color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Normal)
+                        )
+                    }
+                }
+            }
         }
     }
 }

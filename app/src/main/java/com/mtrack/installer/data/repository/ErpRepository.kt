@@ -255,24 +255,27 @@ class ErpRepository(
         val allVehicles = mutableListOf<SoldVehicleItem>()
         val allDues = mutableListOf<ClientDueItem>()
 
-        // 1. Try /api/v1/install-requests (Works with or without login token)
-        try {
-            val installResp = api.getInstallRequests(authHeader, 100)
-            if (installResp.isSuccessful && installResp.body() != null) {
-                val (vehicles, dues) = parseInstallRequestsJson(installResp.body()!!)
-                allVehicles.addAll(vehicles)
-                allDues.addAll(dues)
-            }
-        } catch (ignored: Exception) {}
+        // 1. PRIMARY: Query /api/v1/vehicles first when authenticated
+        if (authHeader != null) {
+            try {
+                val vehiclesResp = api.getVehicles(authHeader)
+                if (vehiclesResp.isSuccessful && vehiclesResp.body() != null) {
+                    val vehicles = parseVehiclesArray(vehiclesResp.body()!!)
+                    if (vehicles.isNotEmpty()) {
+                        allVehicles.addAll(vehicles)
+                    }
+                }
+            } catch (ignored: Exception) {}
+        }
 
-        // 2. Try /api/v1/sales (when authHeader is present)
+        // 2. Try /api/v1/sales (when authHeader is present) to obtain sales metrics & client dues
         if (authHeader != null) {
             try {
                 val salesResp = api.getSales(authHeader, month)
                 if (salesResp.isSuccessful && salesResp.body() != null) {
                     val parsed = parseSalesPayload(salesResp.body()!!)
                     if (parsed != null) {
-                        if (parsed.soldVehiclesList.isNotEmpty()) {
+                        if (allVehicles.isEmpty() && parsed.soldVehiclesList.isNotEmpty()) {
                             allVehicles.addAll(parsed.soldVehiclesList)
                         }
                         if (parsed.clientDuesList.isNotEmpty()) {
@@ -283,21 +286,49 @@ class ErpRepository(
             } catch (ignored: Exception) {}
         }
 
-        // 3. Try /api/v1/vehicles (when authHeader is present)
-        if (allVehicles.isEmpty() && authHeader != null) {
+        // 3. Fallback: ONLY if allVehicles is STILL empty (e.g. unauthenticated or empty), fallback to /api/v1/install-requests
+        if (allVehicles.isEmpty()) {
             try {
-                val vehiclesResp = api.getVehicles(authHeader)
-                if (vehiclesResp.isSuccessful && vehiclesResp.body() != null) {
-                    val vehicles = parseVehiclesArray(vehiclesResp.body()!!)
+                val installResp = api.getInstallRequests(authHeader, 100)
+                if (installResp.isSuccessful && installResp.body() != null) {
+                    val (vehicles, dues) = parseInstallRequestsJson(installResp.body()!!)
                     allVehicles.addAll(vehicles)
+                    if (allDues.isEmpty()) {
+                        allDues.addAll(dues)
+                    }
                 }
             } catch (ignored: Exception) {}
         }
 
-        // Deduplicate vehicles by plate number or ID
+        // 4. If allDues is empty, extract any overdue records directly from vehicles
+        if (allDues.isEmpty()) {
+            for (v in allVehicles) {
+                if (v.isDue || (v.dueAmount ?: 0.0) > 0.0) {
+                    allDues.add(
+                        ClientDueItem(
+                            invoiceId = v.id,
+                            invoiceNo = v.dueInvoiceNo ?: "INV-${v.id}",
+                            grandTotal = (v.devicePrice ?: 0.0).takeIf { it > 0 } ?: (v.dueAmount ?: 0.0),
+                            paidAmount = 0.0,
+                            dueAmount = v.dueAmount ?: 0.0,
+                            paymentStatus = "Unpaid",
+                            invoiceDate = v.installationDate,
+                            vehiclePlateNumber = v.vehiclePlateNumber,
+                            vehicleName = v.vehicleName,
+                            customerName = v.customerName,
+                            customerPhone = v.customerPhone,
+                            isDue = true
+                        )
+                    )
+                }
+            }
+        }
+
+        // Deduplicate vehicles by plate number or ID and sort newest first
         val distinctVehicles = allVehicles.distinctBy {
             it.vehiclePlateNumber.ifBlank { it.id.toString() }
-        }
+        }.sortedByDescending { it.installationDate ?: "" }
+
         val distinctDues = allDues.distinctBy {
             it.invoiceNo.ifBlank { "${it.invoiceId}-${it.customerName}" }
         }
@@ -355,6 +386,8 @@ class ErpRepository(
             val installDate = obj.optString("pref_date_time") ?: obj.optString("created_at") ?: obj.optString("install_date") ?: "Recently"
             val status = obj.optString("status") ?: "Active"
             val dueAmount = obj.optDouble("due_amount", 0.0)
+            val seller = obj.optString("ref_name") ?: obj.optString("seller_name") ?: obj.optString("sales_person")
+            val installer = obj.optString("installer_name") ?: obj.optString("technician") ?: obj.optString("installed_by")
 
             // Check if there is an embedded vehicles list
             if (obj.has("vehicles") && obj.get("vehicles").isJsonArray) {
@@ -375,6 +408,8 @@ class ErpRepository(
                         status = status,
                         customerName = clientName,
                         customerPhone = phone,
+                        sellerName = seller,
+                        installerName = installer,
                         dueAmount = dueAmount,
                         isDue = dueAmount > 0
                     )
@@ -395,6 +430,8 @@ class ErpRepository(
                     status = status,
                     customerName = clientName,
                     customerPhone = phone,
+                    sellerName = seller,
+                    installerName = installer,
                     dueAmount = dueAmount,
                     isDue = dueAmount > 0
                 )
@@ -442,18 +479,135 @@ class ErpRepository(
     }
 
     private fun parseVehiclesArray(json: JsonElement): List<SoldVehicleItem> {
-        val listType = object : TypeToken<List<SoldVehicleItem>>() {}.type
-        return try {
-            when {
-                json.isJsonArray -> gson.fromJson(json.asJsonArray, listType) ?: emptyList()
-                json.isJsonObject && json.asJsonObject.has("data") && json.asJsonObject.get("data").isJsonArray -> {
-                    gson.fromJson(json.asJsonObject.getAsJsonArray("data"), listType) ?: emptyList()
+        val result = mutableListOf<SoldVehicleItem>()
+        val itemsArray: JsonArray = (when {
+            json.isJsonArray -> json.asJsonArray
+            json.isJsonObject -> {
+                val obj = json.asJsonObject
+                when {
+                    obj.has("data") && obj.get("data").isJsonArray -> obj.getAsJsonArray("data")
+                    obj.has("vehicles") && obj.get("vehicles").isJsonArray -> obj.getAsJsonArray("vehicles")
+                    obj.has("items") && obj.get("items").isJsonArray -> obj.getAsJsonArray("items")
+                    obj.has("list") && obj.get("list").isJsonArray -> obj.getAsJsonArray("list")
+                    else -> null
                 }
-                else -> emptyList()
             }
-        } catch (ignored: Exception) {
-            emptyList()
+            else -> null
+        }) ?: return emptyList()
+
+        for (elem in itemsArray) {
+            if (!elem.isJsonObject) continue
+            val obj = elem.asJsonObject
+
+            val id = obj.optInt("id", 0).takeIf { it > 0 }
+                ?: obj.optInt("vehicle_id", 0)
+
+            val plate = obj.optString("registration_no")
+                ?: obj.optString("plate_number")
+                ?: obj.optString("vehicle_plate_number")
+                ?: obj.optString("reg_no")
+                ?: obj.optString("plate_no")
+                ?: obj.optString("vehicle_number")
+                ?: "MTK-${if (id > 0) id else (result.size + 1001)}"
+
+            val model = obj.optString("vehicle_name")
+                ?: obj.optString("vehicle_brand_model")
+                ?: obj.optString("name")
+                ?: obj.optString("model")
+                ?: obj.optString("brand")
+                ?: obj.optString("vehicle_type")
+                ?: "Vehicle Unit"
+
+            val device = obj.optString("device_type")
+                ?: obj.optString("device")
+                ?: obj.optString("tracker_type")
+                ?: "Voice Tracker"
+
+            val price = obj.optDouble("device_price", 0.0).takeIf { it > 0 }
+                ?: obj.optDouble("price", 0.0)
+
+            val installDate = obj.optString("installation_date")
+                ?: obj.optString("installed_date")
+                ?: obj.optString("installed_at")
+                ?: obj.optString("install_date")
+                ?: obj.optString("created_at")
+                ?: obj.optString("date")
+                ?: obj.optString("pref_date_time")
+
+            val status = obj.optString("status")
+                ?: obj.optString("install_status")
+                ?: obj.optString("device_status")
+                ?: "Active"
+
+            // Customer Name & Phone (Flat or nested object)
+            val customerName = obj.optString("customer_name")
+                ?: obj.optString("client_name")
+                ?: obj.optString("customer_full_name")
+                ?: extractStringOrNested(obj, "customer", listOf("name", "full_name", "client_name", "title"))
+                ?: extractStringOrNested(obj, "client", listOf("name", "full_name", "title"))
+                ?: "Valued Client"
+
+            val customerPhone = obj.optString("customer_phone")
+                ?: obj.optString("contact_number")
+                ?: obj.optString("phone")
+                ?: extractStringOrNested(obj, "customer", listOf("phone", "contact_number", "contact", "mobile"))
+                ?: extractStringOrNested(obj, "client", listOf("phone", "contact_number", "contact", "mobile"))
+
+            // Seller Name (Flat or nested object)
+            val sellerName = obj.optString("seller_name")
+                ?: obj.optString("sales_person")
+                ?: obj.optString("sales_executive")
+                ?: obj.optString("ref_name")
+                ?: obj.optString("agent_name")
+                ?: obj.optString("sold_by")
+                ?: extractStringOrNested(obj, "seller", listOf("name", "full_name", "username"))
+                ?: extractStringOrNested(obj, "sales_person", listOf("name", "full_name"))
+                ?: extractStringOrNested(obj, "agent", listOf("name", "full_name"))
+                ?: extractStringOrNested(obj, "reference", listOf("name", "full_name"))
+                ?: extractStringOrNested(obj, "user", listOf("name", "full_name"))
+
+            // Installer / Technician Name (Flat or nested object)
+            val installerName = obj.optString("installer_name")
+                ?: obj.optString("technician_name")
+                ?: obj.optString("installed_by")
+                ?: obj.optString("fitter_name")
+                ?: obj.optString("engineer_name")
+                ?: extractStringOrNested(obj, "installer", listOf("name", "full_name", "username"))
+                ?: extractStringOrNested(obj, "technician", listOf("name", "full_name"))
+                ?: extractStringOrNested(obj, "fitter", listOf("name", "full_name"))
+                ?: extractStringOrNested(obj, "engineer", listOf("name", "full_name"))
+
+            val dueAmount = obj.optDouble("due_amount", 0.0).takeIf { it > 0 }
+                ?: obj.optDouble("due", 0.0).takeIf { it > 0 }
+                ?: obj.optDouble("balance", 0.0)
+
+            val invoiceNo = obj.optString("due_invoice_no")
+                ?: obj.optString("invoice_no")
+                ?: obj.optString("invoice_number")
+
+            val isDue = dueAmount > 0.0 || obj.optBoolean("is_due", false) || status.equals("due", true)
+
+            result.add(
+                SoldVehicleItem(
+                    id = if (id > 0) id else (result.size + 1),
+                    vehiclePlateNumber = plate,
+                    vehicleName = model,
+                    deviceType = device,
+                    devicePrice = price,
+                    installationDate = installDate,
+                    status = status,
+                    customerName = customerName,
+                    customerPhone = customerPhone,
+                    dueAmount = dueAmount,
+                    dueInvoiceNo = invoiceNo,
+                    sellerName = sellerName,
+                    installerName = installerName,
+                    isDue = isDue
+                )
+            )
         }
+
+        return result
     }
 
     /**
@@ -597,5 +751,26 @@ class ErpRepository(
     private fun JsonObject.optDouble(key: String, default: Double): Double {
         if (!has(key) || get(key).isJsonNull) return default
         return try { get(key).asDouble } catch (ignored: Exception) { default }
+    }
+
+    private fun JsonObject.optBoolean(key: String, default: Boolean): Boolean {
+        if (!has(key) || get(key).isJsonNull) return default
+        return try { get(key).asBoolean } catch (ignored: Exception) { default }
+    }
+
+    private fun extractStringOrNested(obj: JsonObject, fieldKey: String, nestedKeys: List<String>): String? {
+        if (!obj.has(fieldKey) || obj.get(fieldKey).isJsonNull) return null
+        val elem = obj.get(fieldKey)
+        if (elem.isJsonPrimitive) {
+            val s = elem.asString.trim()
+            if (s.isNotEmpty()) return s
+        } else if (elem.isJsonObject) {
+            val nestedObj = elem.asJsonObject
+            for (nk in nestedKeys) {
+                val nestedVal = nestedObj.optString(nk)?.trim()
+                if (!nestedVal.isNullOrEmpty()) return nestedVal
+            }
+        }
+        return null
     }
 }
